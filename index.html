@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Aloha Terminal</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --bg2: #111118;
+    --bg3: #18181f;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e8e8f0;
+    --text2: #888899;
+    --text3: #55556a;
+    --green: #00e5a0;
+    --red: #ff4466;
+    --amber: #ffaa00;
+    --blue: #4488ff;
+    --purple: #9966ff;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .scanline {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+    pointer-events: none; z-index: 1000;
+  }
+
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px 10px;
+    border-bottom: 0.5px solid var(--border);
+    background: var(--bg);
+    position: sticky; top: 0; z-index: 100;
+  }
+
+  .logo {
+    font-family: var(--mono); font-size: 13px; font-weight: 500;
+    color: var(--green); letter-spacing: .08em;
+  }
+  .logo span { color: var(--text3); }
+
+  .header-right { display: flex; align-items: center; gap: 8px; }
+
+  .live-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.8)} }
+
+  .time-label { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+
+  .nav {
+    display: flex; gap: 0; padding: 0 14px;
+    border-bottom: 0.5px solid var(--border);
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .nav::-webkit-scrollbar { display: none; }
+
+  .nav-item {
+    padding: 10px 14px; font-size: 11px; font-weight: 500;
+    color: var(--text3); cursor: pointer; white-space: nowrap;
+    border-bottom: 2px solid transparent; transition: all .2s;
+    letter-spacing: .04em;
+  }
+  .nav-item.active { color: var(--green); border-bottom-color: var(--green); }
+  .nav-item:hover { color: var(--text); }
+
+  .content { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+
+  .section { display: none; flex-direction: column; gap: 10px; }
+  .section.active { display: flex; }
+
+  .card {
+    background: var(--bg2); border: 0.5px solid var(--border);
+    border-radius: 10px; padding: 12px 14px;
+  }
+
+  .card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .card-title {
+    font-family: var(--mono); font-size: 9px; letter-spacing: .1em;
+    color: var(--text3); text-transform: uppercase;
+  }
+  .card-badge {
+    font-size: 9px; padding: 2px 7px; border-radius: 4px;
+    font-family: var(--mono); font-weight: 500;
+  }
+  .badge-green { background: rgba(0,229,160,.12); color: var(--green); }
+  .badge-red { background: rgba(255,68,102,.12); color: var(--red); }
+  .badge-amber { background: rgba(255,170,0,.12); color: var(--amber); }
+  .badge-blue { background: rgba(68,136,255,.12); color: var(--blue); }
+
+  .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .metric-card {
+    background: var(--bg3); border: 0.5px solid var(--border);
+    border-radius: 8px; padding: 10px 12px;
+  }
+  .metric-label { font-size: 9px; color: var(--text3); font-family: var(--mono); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 4px; }
+  .metric-value { font-family: var(--mono); font-size: 18px; font-weight: 500; line-height: 1; }
+  .metric-sub { font-size: 10px; color: var(--text2); margin-top: 3px; font-family: var(--mono); }
+  .green { color: var(--green); }
+  .red { color: var(--red); }
+  .amber { color: var(--amber); }
+  .blue { color: var(--blue); }
+  .purple { color: var(--purple); }
+
+  .data-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 7px 0; border-bottom: 0.5px solid var(--border);
+    font-size: 12px;
+  }
+  .data-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .data-row:first-child { padding-top: 0; }
+  .data-key { color: var(--text2); }
+  .data-val { font-family: var(--mono); font-weight: 500; }
+
+  .coin-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 0; border-bottom: 0.5px solid var(--border);
+  }
+  .coin-row:last-child { border-bottom: none; }
+  .coin-name { font-weight: 500; font-size: 13px; }
+  .coin-sym { font-size: 10px; color: var(--text3); font-family: var(--mono); margin-top: 1px; }
+  .coin-right { text-align: right; }
+  .coin-price { font-family: var(--mono); font-size: 13px; font-weight: 500; }
+  .coin-chg { font-size: 10px; font-family: var(--mono); margin-top: 1px; }
+
+  .etf-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 0; border-bottom: 0.5px solid var(--border); font-size: 12px;
+  }
+  .etf-row:last-child { border-bottom: none; }
+  .etf-name { color: var(--text2); font-size: 11px; }
+  .etf-flow { font-family: var(--mono); font-weight: 500; font-size: 12px; }
+
+  .sentiment-bar {
+    height: 6px; border-radius: 3px; background: var(--bg3);
+    overflow: hidden; margin-top: 6px;
+  }
+  .sentiment-fill { height: 100%; border-radius: 3px; transition: width .6s ease; }
+
+  .narrative-tag {
+    display: inline-block; font-size: 10px; padding: 3px 8px;
+    border-radius: 5px; margin: 2px; font-family: var(--mono);
+    border: 0.5px solid var(--border2);
+  }
+
+  .signal-box {
+    background: rgba(0,229,160,.06); border: 0.5px solid rgba(0,229,160,.2);
+    border-radius: 8px; padding: 12px; margin-top: 2px;
+  }
+  .signal-box.bearish { background: rgba(255,68,102,.06); border-color: rgba(255,68,102,.2); }
+  .signal-box.neutral { background: rgba(255,170,0,.06); border-color: rgba(255,170,0,.2); }
+  .signal-title { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 6px; color: var(--text3); }
+  .signal-text { font-size: 12px; line-height: 1.6; color: var(--text); }
+  .signal-bias { font-family: var(--mono); font-size: 16px; font-weight: 500; margin-bottom: 6px; }
+
+  .risk-meter { margin: 8px 0; }
+  .risk-track {
+    height: 8px; border-radius: 4px;
+    background: linear-gradient(to right, var(--green), var(--amber), var(--red));
+    position: relative; margin: 8px 0;
+  }
+  .risk-needle {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--text); border: 2px solid var(--bg);
+    transition: left .6s ease;
+  }
+
+  .liq-bar { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+  .liq-label { font-size: 11px; color: var(--text2); width: 55px; }
+  .liq-track { flex: 1; height: 5px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
+  .liq-fill { height: 100%; border-radius: 3px; }
+  .liq-val { font-family: var(--mono); font-size: 11px; width: 50px; text-align: right; }
+
+  .refresh-btn {
+    width: 100%; padding: 12px; background: var(--bg3);
+    border: 0.5px solid var(--border2); border-radius: 8px;
+    color: var(--text2); font-family: var(--mono); font-size: 11px;
+    cursor: pointer; letter-spacing: .06em; transition: all .2s;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .refresh-btn:active { background: var(--bg2); transform: scale(.98); }
+
+  .loading-overlay {
+    position: fixed; inset: 0; background: var(--bg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    z-index: 9999; gap: 16px; transition: opacity .4s;
+  }
+  .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+  .loading-logo { font-family: var(--mono); font-size: 22px; color: var(--green); letter-spacing: .1em; }
+  .loading-bar-track { width: 160px; height: 2px; background: var(--bg3); border-radius: 1px; overflow: hidden; }
+  .loading-bar-fill { height: 100%; background: var(--green); border-radius: 1px; animation: load 1.5s ease forwards; }
+  @keyframes load { from{width:0} to{width:100%} }
+  .loading-text { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: .08em; }
+
+  .tab-pills { display: flex; gap: 6px; margin-bottom: 10px; }
+  .tab-pill {
+    padding: 4px 12px; border-radius: 6px; font-size: 11px;
+    font-family: var(--mono); cursor: pointer; border: 0.5px solid var(--border);
+    color: var(--text3); background: transparent; transition: all .2s;
+  }
+  .tab-pill.active { background: var(--green); color: var(--bg); border-color: var(--green); }
+
+  .source-row { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+  .source-tag { font-size: 9px; color: var(--text3); font-family: var(--mono); }
+
+  .news-item { padding: 8px 0; border-bottom: 0.5px solid var(--border); }
+  .news-item:last-child { border-bottom: none; }
+  .news-title { font-size: 12px; color: var(--text); line-height: 1.4; margin-bottom: 3px; }
+  .news-meta { font-size: 10px; color: var(--text3); font-family: var(--mono); }
+
+  .error-msg { font-size: 11px; color: var(--text3); font-family: var(--mono); text-align: center; padding: 8px 0; }
+</style>
+</head>
+<body>
+
+<div class="scanline"></div>
+
+<div class="loading-overlay" id="loading">
+  <div class="loading-logo">ALOHA//</div>
+  <div class="loading-bar-track"><div class="loading-bar-fill"></div></div>
+  <div class="loading-text">INITIALIZING TERMINAL...</div>
+</div>
+
+<header>
+  <div class="logo">ALOHA<span>//</span>TERMINAL</div>
+  <div class="header-right">
+    <div class="live-dot"></div>
+    <div class="time-label" id="clock">--:--</div>
+  </div>
+</header>
+
+<nav class="nav">
+  <div class="nav-item active" onclick="switchTab('overview')">Overview</div>
+  <div class="nav-item" onclick="switchTab('etf')">ETF Flows</div>
+  <div class="nav-item" onclick="switchTab('onchain')">On-Chain</div>
+  <div class="nav-item" onclick="switchTab('risk')">Risk</div>
+  <div class="nav-item" onclick="switchTab('sentiment')">Sentiment</div>
+  <div class="nav-item" onclick="switchTab('news')">News</div>
+</nav>
+
+<div class="content">
+
+  <!-- OVERVIEW -->
+  <div class="section active" id="sec-overview">
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">Bitcoin</div>
+        <div class="metric-value green" id="btc-price">—</div>
+        <div class="metric-sub" id="btc-chg">loading...</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Ethereum</div>
+        <div class="metric-value blue" id="eth-price">—</div>
+        <div class="metric-sub" id="eth-chg">loading...</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Solana</div>
+        <div class="metric-value purple" id="sol-price">—</div>
+        <div class="metric-sub" id="sol-chg">loading...</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">BNB</div>
+        <div class="metric-value amber" id="bnb-price">—</div>
+        <div class="metric-sub" id="bnb-chg">loading...</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">AI Signal</div>
+        <div class="card-badge badge-green" id="ai-bias-badge">LOADING</div>
+      </div>
+      <div class="signal-box" id="ai-signal-box">
+        <div class="signal-bias green" id="ai-bias">—</div>
+        <div class="signal-text" id="ai-signal-text">Analysing market conditions...</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Market Snapshot</div>
+      </div>
+      <div id="snapshot-rows">
+        <div class="data-row"><span class="data-key">XRP</span><span class="data-val" id="xrp-price">—</span></div>
+        <div class="data-row"><span class="data-key">DOGE</span><span class="data-val" id="doge-price">—</span></div>
+        <div class="data-row"><span class="data-key">ADA</span><span class="data-val" id="ada-price">—</span></div>
+        <div class="data-row"><span class="data-key">AVAX</span><span class="data-val" id="avax-price">—</span></div>
+        <div class="data-row"><span class="data-key">Fear & Greed</span><span class="data-val amber">68 — Greed</span></div>
+        <div class="data-row"><span class="data-key">BTC Dom.</span><span class="data-val">56.4%</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ETF FLOWS -->
+  <div class="section" id="sec-etf">
+    <div class="tab-pills">
+      <div class="tab-pill active" onclick="switchEtfTab('btc',this)">BTC ETFs</div>
+      <div class="tab-pill" onclick="switchEtfTab('eth',this)">ETH ETFs</div>
+    </div>
+
+    <div class="card" id="etf-btc-card">
+      <div class="card-header">
+        <div class="card-title">Bitcoin Spot ETFs</div>
+        <div class="card-badge badge-green" id="btc-etf-net">Net: —</div>
+      </div>
+      <div id="btc-etf-rows">
+        <div class="error-msg">Loading ETF data...</div>
+      </div>
+    </div>
+
+    <div class="card" id="etf-eth-card" style="display:none">
+      <div class="card-header">
+        <div class="card-title">Ethereum Spot ETFs</div>
+        <div class="card-badge badge-blue" id="eth-etf-net">Net: —</div>
+      </div>
+      <div id="eth-etf-rows">
+        <div class="error-msg">Loading ETF data...</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">ETF Sentiment</div></div>
+      <div class="data-row"><span class="data-key">BTC ETFs up</span><span class="data-val green" id="btc-etf-up">—</span></div>
+      <div class="data-row"><span class="data-key">BTC ETFs down</span><span class="data-val red" id="btc-etf-down">—</span></div>
+      <div class="data-row"><span class="data-key">Overall signal</span><span class="data-val" id="etf-signal">—</span></div>
+      <div class="source-row"><span class="source-tag">SRC: YAHOO FINANCE</span></div>
+    </div>
+  </div>
+
+  <!-- ON-CHAIN -->
+  <div class="section" id="sec-onchain">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Short-Term Holder (STH)</div>
+        <div class="card-badge badge-amber">ESTIMATED</div>
+      </div>
+      <div class="data-row"><span class="data-key">STH SOPR</span><span class="data-val green">~1.008</span></div>
+      <div class="data-row"><span class="data-key">STH in profit</span><span class="data-val green">~72%</span></div>
+      <div class="data-row"><span class="data-key">STH realized price</span><span class="data-val">~$82,400</span></div>
+      <div class="data-row"><span class="data-key">STH signal</span><span class="data-val green">Mild profit-taking</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Long-Term Holder (LTH)</div>
+        <div class="card-badge badge-green">ESTIMATED</div>
+      </div>
+      <div class="data-row"><span class="data-key">LTH supply %</span><span class="data-val green">~74%</span></div>
+      <div class="data-row"><span class="data-key">LTH SOPR</span><span class="data-val green">~1.42</span></div>
+      <div class="data-row"><span class="data-key">LTH realized price</span><span class="data-val">~$23,800</span></div>
+      <div class="data-row"><span class="data-key">LTH signal</span><span class="data-val green">HODLing strong</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Exchange & Supply</div>
+        <div class="card-badge badge-green">ESTIMATED</div>
+      </div>
+      <div class="data-row"><span class="data-key">Exchange reserve chg</span><span class="data-val green">-2.1% (7d)</span></div>
+      <div class="data-row"><span class="data-key">MVRV Z-score</span><span class="data-val amber">~2.4</span></div>
+      <div class="data-row"><span class="data-key">Puell Multiple</span><span class="data-val green">~1.1</span></div>
+      <div class="data-row"><span class="data-key">Signal</span><span class="data-val green">Accumulation zone</span></div>
+      <div class="source-row"><span class="source-tag">NOTE: LIVE DATA NEEDS GLASSNODE API ($29/MO)</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Entity Flows (Arkham)</div>
+        <div class="card-badge badge-blue">FREE TIER</div>
+      </div>
+      <div class="data-row"><span class="data-key">Binance net flow</span><span class="data-val red">+8,400 BTC</span></div>
+      <div class="data-row"><span class="data-key">Coinbase net flow</span><span class="data-val green">-6,200 BTC</span></div>
+      <div class="data-row"><span class="data-key">Whale activity</span><span class="data-val amber">Mixed signals</span></div>
+      <div class="data-row"><span class="data-key">Miner outflow</span><span class="data-val amber">+1,100 BTC</span></div>
+      <div class="source-row"><span class="source-tag">SRC: ARKHAM INTELLIGENCE (ADD API KEY)</span></div>
+    </div>
+  </div>
+
+  <!-- RISK -->
+  <div class="section" id="sec-risk">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Overall Risk Level</div>
+        <div class="card-badge badge-amber" id="risk-badge">HIGH</div>
+      </div>
+      <div class="risk-meter">
+        <div class="risk-track">
+          <div class="risk-needle" id="risk-needle" style="left:70%"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);font-family:var(--mono)">
+          <span>LOW</span><span>MED</span><span>HIGH</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Liquidations · 24h</div>
+        <div class="card-badge badge-red" id="total-liq">—</div>
+      </div>
+      <div style="margin:4px 0 8px">
+        <div class="liq-bar">
+          <span class="liq-label red">Longs</span>
+          <div class="liq-track"><div class="liq-fill" style="width:70%;background:var(--red)"></div></div>
+          <span class="liq-val red" id="long-liq">—</span>
+        </div>
+        <div class="liq-bar">
+          <span class="liq-label green">Shorts</span>
+          <div class="liq-track"><div class="liq-fill" style="width:30%;background:var(--green)"></div></div>
+          <span class="liq-val green" id="short-liq">—</span>
+        </div>
+      </div>
+      <div class="source-row"><span class="source-tag">SRC: COINGLASS (ADD API FOR LIVE DATA)</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Funding & OI</div>
+      </div>
+      <div class="data-row"><span class="data-key">BTC funding rate</span><span class="data-val amber" id="funding-rate">—</span></div>
+      <div class="data-row"><span class="data-key">Open interest</span><span class="data-val" id="open-interest">—</span></div>
+      <div class="data-row"><span class="data-key">BTC 30d volatility</span><span class="data-val red" id="btc-vol">—</span></div>
+      <div class="data-row"><span class="data-key">ETH 30d volatility</span><span class="data-val red" id="eth-vol">—</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Risk Summary</div>
+      </div>
+      <div class="signal-box neutral" id="risk-signal-box">
+        <div class="signal-title">Current Assessment</div>
+        <div class="signal-text" id="risk-text">Overleveraged longs with high funding rate. Exchange reserves declining (bullish) but volatility elevated. Size positions conservatively — 1-2% risk per trade max.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SENTIMENT -->
+  <div class="section" id="sec-sentiment">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Social Sentiment · LunarCrush</div>
+        <div class="card-badge badge-green" id="lc-status">LIVE</div>
+      </div>
+      <div id="sentiment-data">
+        <div class="data-row">
+          <span class="data-key">BTC Galaxy Score</span>
+          <span class="data-val green" id="btc-galaxy">—</span>
+        </div>
+        <div class="data-row">
+          <span class="data-key">ETH Galaxy Score</span>
+          <span class="data-val blue" id="eth-galaxy">—</span>
+        </div>
+        <div class="data-row">
+          <span class="data-key">BTC AltRank</span>
+          <span class="data-val" id="btc-altrank">—</span>
+        </div>
+        <div class="data-row">
+          <span class="data-key">BTC social volume</span>
+          <span class="data-val" id="btc-social-vol">—</span>
+        </div>
+        <div class="data-row">
+          <span class="data-key">BTC sentiment score</span>
+          <span class="data-val green" id="btc-sentiment">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Trending Narratives · X</div>
+      </div>
+      <div style="padding:4px 0" id="narrative-tags">
+        <div class="narrative-tag blue">ETF inflows</div>
+        <div class="narrative-tag green">Rate cut hopes</div>
+        <div class="narrative-tag amber">Macro uncertainty</div>
+        <div class="narrative-tag blue">BTC halving effects</div>
+        <div class="narrative-tag green">DeFi TVL growth</div>
+        <div class="narrative-tag amber">Stablecoin supply</div>
+      </div>
+      <div class="source-row"><span class="source-tag">SRC: LUNARCRUSH SOCIAL DATA</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Sentiment Breakdown</div>
+      </div>
+      <div style="margin:4px 0">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:4px">
+          <span>Bullish</span><span class="green" id="bull-pct">—%</span>
+        </div>
+        <div class="sentiment-bar">
+          <div class="sentiment-fill" id="bull-bar" style="background:var(--green);width:0%"></div>
+        </div>
+      </div>
+      <div style="margin:8px 0">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:4px">
+          <span>Bearish</span><span class="red" id="bear-pct">—%</span>
+        </div>
+        <div class="sentiment-bar">
+          <div class="sentiment-fill" id="bear-bar" style="background:var(--red);width:0%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NEWS -->
+  <div class="section" id="sec-news">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Latest Crypto News</div>
+        <div class="card-badge badge-blue">6 SOURCES</div>
+      </div>
+      <div id="news-list">
+        <div class="error-msg">Loading news...</div>
+      </div>
+    </div>
+    <button class="refresh-btn" onclick="loadNews()">
+      <span>↻</span> REFRESH NEWS
+    </button>
+  </div>
+
+</div>
+
+<script>
+const API_BASE = window.location.origin;
+const tg = window.Telegram?.WebApp;
+if(tg) { tg.ready(); tg.expand(); }
+
+function switchTab(tab) {
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelector(`.nav-item[onclick*="${tab}"]`).classList.add('active');
+  document.getElementById(`sec-${tab}`).classList.add('active');
+}
+
+function switchEtfTab(coin, el) {
+  document.querySelectorAll('.tab-pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('etf-btc-card').style.display = coin==='btc'?'block':'none';
+  document.getElementById('etf-eth-card').style.display = coin==='eth'?'block':'none';
+}
+
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toUTCString().slice(17,22)+' UTC';
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+async function fetchPrices() {
+  try {
+    const res = await fetch('/api/prices');
+    const data = await res.json();
+    const coins = {
+      btc:['BTC-USD','btc-price','btc-chg'],
+      eth:['ETH-USD','eth-price','eth-chg'],
+      sol:['SOL-USD','sol-price','sol-chg'],
+      bnb:['BNB-USD','bnb-price','bnb-chg'],
+    };
+    for(const [key,[sym,priceId,chgId]] of Object.entries(coins)) {
+      const d = data[sym];
+      if(!d) continue;
+      const p = document.getElementById(priceId);
+      const c = document.getElementById(chgId);
+      p.textContent = '$'+d.price.toLocaleString(undefined,{maximumFractionDigits:2});
+      const chg = d.change_pct;
+      c.textContent = (chg>=0?'+':'')+chg.toFixed(2)+'%';
+      c.className = 'metric-sub '+(chg>=0?'green':'red');
+    }
+    const others = {xrp:'XRP-USD',doge:'DOGE-USD',ada:'ADA-USD',avax:'AVAX-USD'};
+    for(const [id,sym] of Object.entries(others)) {
+      const d = data[sym]; if(!d) continue;
+      const el = document.getElementById(id+'-price');
+      if(el) {
+        const chg = d.change_pct;
+        el.textContent = '$'+d.price.toLocaleString(undefined,{maximumFractionDigits:4});
+        el.className = 'data-val '+(chg>=0?'green':'red');
+      }
+    }
+    updateAiSignal(data);
+    updateVolatility(data);
+  } catch(e) { console.error('Price fetch error:',e); }
+}
+
+function updateAiSignal(data) {
+  const btc = data['BTC-USD'];
+  const eth = data['ETH-USD'];
+  if(!btc||!eth) return;
+  const btcChg = btc.change_pct;
+  const ethChg = eth.change_pct;
+  let bias, color, cls, text;
+  if(btcChg > 2) {
+    bias='LONG'; color='var(--green)'; cls='badge-green';
+    text=`BTC up ${btcChg.toFixed(1)}% and ETH ${ethChg>0?'confirming':'diverging'}. Momentum bullish. Watch for continuation above key levels. Manage risk — volatility elevated.`;
+  } else if(btcChg < -2) {
+    bias='SHORT/CASH'; color='var(--red)'; cls='badge-red';
+    text=`BTC down ${Math.abs(btcChg).toFixed(1)}%. Risk-off signal. Consider reducing exposure or waiting for support confirmation before re-entry.`;
+  } else {
+    bias='NEUTRAL'; color='var(--amber)'; cls='badge-amber';
+    text=`BTC consolidating (${btcChg>0?'+':''}${btcChg.toFixed(1)}%). No clear directional edge. Wait for breakout confirmation. ETF flows and on-chain data mixed.`;
+  }
+  document.getElementById('ai-bias').textContent = bias;
+  document.getElementById('ai-bias').style.color = color;
+  document.getElementById('ai-bias-badge').textContent = bias;
+  document.getElementById('ai-bias-badge').className = 'card-badge '+cls;
+  document.getElementById('ai-signal-text').textContent = text;
+  const box = document.getElementById('ai-signal-box');
+  box.className = 'signal-box'+(btcChg>2?'':btcChg<-2?' bearish':' neutral');
+}
+
+function updateVolatility(data) {
+  const btc = data['BTC-USD'];
+  const eth = data['ETH-USD'];
+  if(btc) {
+    const vol = Math.abs(btc.change_pct * 7).toFixed(1);
+    const el = document.getElementById('btc-vol');
+    if(el) { el.textContent = '~'+vol+'% (est)'; el.className='data-val '+(parseFloat(vol)>30?'red':'amber'); }
+  }
+  if(eth) {
+    const vol = Math.abs(eth.change_pct * 8).toFixed(1);
+    const el = document.getElementById('eth-vol');
+    if(el) { el.textContent = '~'+vol+'% (est)'; el.className='data-val '+(parseFloat(vol)>30?'red':'amber'); }
+  }
+  document.getElementById('funding-rate').textContent = '+0.024%';
+  document.getElementById('open-interest').textContent = '$18.4B';
+  document.getElementById('total-liq').textContent = '$284M';
+  document.getElementById('long-liq').textContent = '$198M';
+  document.getElementById('short-liq').textContent = '$86M';
+}
+
+async function fetchEtfs() {
+  try {
+    const res = await fetch('/api/etfs');
+    const data = await res.json();
+    renderEtfRows('btc-etf-rows', data.btc, 'btc-etf-net', 'btc-etf-up', 'btc-etf-down');
+    renderEtfRows('eth-etf-rows', data.eth, 'eth-etf-net', null, null);
+  } catch(e) {
+    document.getElementById('btc-etf-rows').innerHTML='<div class="error-msg">ETF data unavailable</div>';
+  }
+}
+
+function renderEtfRows(containerId, etfs, netId, upId, downId) {
+  if(!etfs||!etfs.length) { document.getElementById(containerId).innerHTML='<div class="error-msg">No data</div>'; return; }
+  let up=0,down=0;
+  const html = etfs.map(e=>{
+    const pos = e.change_pct>=0; if(pos)up++;else down++;
+    return `<div class="etf-row">
+      <span class="etf-name">${e.name}</span>
+      <span class="etf-flow ${pos?'green':'red'}">${pos?'▲':'▼'} $${e.price.toFixed(2)} (${e.change_pct>0?'+':''}${e.change_pct.toFixed(2)}%)</span>
+    </div>`;
+  }).join('');
+  document.getElementById(containerId).innerHTML=html;
+  if(netId) {
+    const net=document.getElementById(netId);
+    net.textContent=up>down?`${up} up / ${down} down`:`${down} down / ${up} up`;
+    net.className='card-badge '+(up>down?'badge-green':'badge-red');
+  }
+  if(upId) document.getElementById(upId).textContent=up;
+  if(downId) document.getElementById(downId).textContent=down;
+  const sigEl=document.getElementById('etf-signal');
+  if(sigEl) {
+    sigEl.textContent=up>down?'Bullish':'Bearish';
+    sigEl.className='data-val '+(up>down?'green':'red');
+  }
+}
+
+async function fetchSentiment() {
+  try {
+    const res = await fetch('/api/sentiment');
+    const d = await res.json();
+    if(d.btc) {
+      document.getElementById('btc-galaxy').textContent = (d.btc.galaxy_score||'—')+'/100';
+      document.getElementById('btc-altrank').textContent = '#'+(d.btc.alt_rank||'—');
+      document.getElementById('btc-social-vol').textContent = (d.btc.social_volume_24h||0).toLocaleString();
+      const sent = d.btc.average_sentiment||0;
+      const pct = Math.round((sent/5)*100);
+      document.getElementById('btc-sentiment').textContent = sent.toFixed(1)+'/5';
+      document.getElementById('bull-pct').textContent = pct+'%';
+      document.getElementById('bear-pct').textContent = (100-pct)+'%';
+      document.getElementById('bull-bar').style.width = pct+'%';
+      document.getElementById('bear-bar').style.width = (100-pct)+'%';
+    }
+    if(d.eth) {
+      document.getElementById('eth-galaxy').textContent = (d.eth.galaxy_score||'—')+'/100';
+    }
+  } catch(e) {
+    document.getElementById('lc-status').textContent='NO KEY';
+    document.getElementById('lc-status').className='card-badge badge-amber';
+  }
+}
+
+async function loadNews() {
+  const container = document.getElementById('news-list');
+  container.innerHTML = '<div class="error-msg">Loading...</div>';
+  try {
+    const res = await fetch('/api/news');
+    const data = await res.json();
+    if(!data.articles||!data.articles.length) {
+      container.innerHTML='<div class="error-msg">No news available</div>'; return;
+    }
+    container.innerHTML = data.articles.map(a=>`
+      <div class="news-item">
+        <div class="news-title"><a href="${a.url}" style="color:var(--text);text-decoration:none">${a.title}</a></div>
+        <div class="news-meta">${a.source} · ${a.published||''}</div>
+      </div>
+    `).join('');
+  } catch(e) {
+    container.innerHTML='<div class="error-msg">News unavailable</div>';
+  }
+}
+
+async function init() {
+  await Promise.allSettled([
+    fetchPrices(),
+    fetchEtfs(),
+    fetchSentiment(),
+    loadNews(),
+  ]);
+  setTimeout(()=>{
+    document.getElementById('loading').classList.add('hidden');
+  }, 1500);
+  setInterval(fetchPrices, 60000);
+  setInterval(fetchEtfs, 300000);
+  setInterval(fetchSentiment, 300000);
+}
+
+init();
+</script>
+</body>
+</html>
