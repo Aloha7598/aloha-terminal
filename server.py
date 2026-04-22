@@ -14,14 +14,11 @@ from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 # ─────────────────────────────────────────────
 #  CONFIG
 # ─────────────────────────────────────────────
-TOKEN          = "PASTE_YOUR_TELEGRAM_TOKEN"
-LUNARCRUSH_KEY = "PASTE_YOUR_LUNARCRUSH_KEY"   # free at lunarcrush.com/developers
-NEWS_API_KEY   = "PASTE_YOUR_NEWSAPI_KEY"       # free at newsapi.org
-CHAT_ID        = "PASTE_YOUR_CHAT_ID"           # from @userinfobot
-
-# Your public URL after deploying (Railway/Render/ngrok for testing)
-# Example: "https://your-app.railway.app"
-APP_URL        = "PASTE_YOUR_PUBLIC_URL"
+TOKEN          = os.environ.get("TOKEN", "")
+LUNARCRUSH_KEY = os.environ.get("LUNARCRUSH_KEY", "")
+NEWS_API_KEY   = os.environ.get("NEWS_API_KEY", "")
+CHAT_ID        = os.environ.get("CHAT_ID", "")
+APP_URL        = os.environ.get("APP_URL", "")
 
 logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s", level=logging.INFO)
 
