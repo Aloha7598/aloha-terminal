@@ -533,9 +533,11 @@
 </div>
 
 <script>
-const API_BASE = window.location.origin;
 const tg = window.Telegram?.WebApp;
 if(tg) { tg.ready(); tg.expand(); }
+
+// Use absolute URL so Telegram Mini App can reach the server
+const API_BASE = 'https://aloha-terminal.onrender.com';
 
 function switchTab(tab) {
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -561,7 +563,7 @@ updateClock();
 
 async function fetchPrices(retries = 3) {
   try {
-    const res = await fetch('/api/prices');
+    const res = await fetch(API_BASE + '/api/prices');
     if (!res.ok) throw new Error('Bad response');
     const data = await res.json();
     if (data.error) throw new Error(data.error);
@@ -656,7 +658,7 @@ function updateVolatility(data) {
 
 async function fetchEtfs() {
   try {
-    const res = await fetch('/api/etfs');
+    const res = await fetch(API_BASE + '/api/etfs');
     const data = await res.json();
     renderEtfRows('btc-etf-rows', data.btc, 'btc-etf-net', 'btc-etf-up', 'btc-etf-down');
     renderEtfRows('eth-etf-rows', data.eth, 'eth-etf-net', null, null);
@@ -692,7 +694,7 @@ function renderEtfRows(containerId, etfs, netId, upId, downId) {
 
 async function fetchSentiment() {
   try {
-    const res = await fetch('/api/sentiment');
+    const res = await fetch(API_BASE + '/api/sentiment');
     const d = await res.json();
     if(d.btc) {
       document.getElementById('btc-galaxy').textContent = (d.btc.galaxy_score||'—')+'/100';
@@ -717,7 +719,7 @@ async function fetchSentiment() {
 
 async function fetchOnChain() {
   try {
-    const res = await fetch('/api/onchain');
+    const res = await fetch(API_BASE + '/api/onchain');
     const d = await res.json();
     const isLive = d.source === 'glassnode';
     document.getElementById('onchain-source-badge').textContent = isLive ? 'LIVE' : 'ESTIMATED';
@@ -743,7 +745,7 @@ async function fetchOnChain() {
 
 async function fetchDefi() {
   try {
-    const res = await fetch('/api/defi');
+    const res = await fetch(API_BASE + '/api/defi');
     const d = await res.json();
     if (d.error) return;
     document.getElementById('total-tvl').textContent = '$' + d.total_tvl.toFixed(1) + 'B';
@@ -765,7 +767,7 @@ async function fetchDefi() {
 
 async function fetchFearGreed() {
   try {
-    const res = await fetch('/api/feargreed');
+    const res = await fetch(API_BASE + '/api/feargreed');
     const d = await res.json();
     if (d.error) return;
     const val = d.value;
@@ -810,7 +812,7 @@ function updateRiskText(fg) {
 
 async function fetchWhales() {
   try {
-    const res = await fetch('/api/whales');
+    const res = await fetch(API_BASE + '/api/whales');
     const d = await res.json();
     const whales = d.whales || [];
     const container = document.getElementById('whale-rows');
@@ -831,7 +833,7 @@ async function fetchWhales() {
 
 async function fetchMacro() {
   try {
-    const res = await fetch('/api/macro');
+    const res = await fetch(API_BASE + '/api/macro');
     const d = await res.json();
     const events = d.events || [];
     const container = document.getElementById('macro-events');
@@ -859,7 +861,7 @@ async function fetchRiskAll() {
   const container = document.getElementById('news-list');
   container.innerHTML = '<div class="error-msg">Loading...</div>';
   try {
-    const res = await fetch('/api/news');
+    const res = await fetch(API_BASE + '/api/news');
     const data = await res.json();
     if(!data.articles||!data.articles.length) {
       container.innerHTML='<div class="error-msg">No news available</div>'; return;
