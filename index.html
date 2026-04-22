@@ -309,8 +309,8 @@
         <div class="data-row"><span class="data-key">DOGE</span><span class="data-val" id="doge-price">—</span></div>
         <div class="data-row"><span class="data-key">ADA</span><span class="data-val" id="ada-price">—</span></div>
         <div class="data-row"><span class="data-key">AVAX</span><span class="data-val" id="avax-price">—</span></div>
-        <div class="data-row"><span class="data-key">Fear & Greed</span><span class="data-val amber">68 — Greed</span></div>
-        <div class="data-row"><span class="data-key">BTC Dom.</span><span class="data-val">56.4%</span></div>
+        <div class="data-row"><span class="data-key">Fear & Greed</span><span class="data-val" id="overview-fg">Loading...</span></div>
+        <div class="data-row"><span class="data-key">DeFi TVL</span><span class="data-val green" id="overview-tvl">—</span></div>
       </div>
     </div>
   </div>
@@ -355,96 +355,89 @@
   <div class="section" id="sec-onchain">
     <div class="card">
       <div class="card-header">
-        <div class="card-title">Short-Term Holder (STH)</div>
-        <div class="card-badge badge-amber">ESTIMATED</div>
+        <div class="card-title">STH / LTH Indicators</div>
+        <div class="card-badge badge-amber" id="onchain-source-badge">LOADING</div>
       </div>
-      <div class="data-row"><span class="data-key">STH SOPR</span><span class="data-val green">~1.008</span></div>
-      <div class="data-row"><span class="data-key">STH in profit</span><span class="data-val green">~72%</span></div>
-      <div class="data-row"><span class="data-key">STH realized price</span><span class="data-val">~$82,400</span></div>
-      <div class="data-row"><span class="data-key">STH signal</span><span class="data-val green">Mild profit-taking</span></div>
+      <div class="data-row"><span class="data-key">STH SOPR</span><span class="data-val" id="sth-sopr">—</span></div>
+      <div class="data-row"><span class="data-key">LTH SOPR</span><span class="data-val" id="lth-sopr">—</span></div>
+      <div class="data-row"><span class="data-key">LTH Supply %</span><span class="data-val" id="lth-pct">—</span></div>
+      <div class="data-row"><span class="data-key">Signal</span><span class="data-val" id="onchain-signal">—</span></div>
     </div>
 
     <div class="card">
       <div class="card-header">
-        <div class="card-title">Long-Term Holder (LTH)</div>
-        <div class="card-badge badge-green">ESTIMATED</div>
+        <div class="card-title">Market Valuation</div>
       </div>
-      <div class="data-row"><span class="data-key">LTH supply %</span><span class="data-val green">~74%</span></div>
-      <div class="data-row"><span class="data-key">LTH SOPR</span><span class="data-val green">~1.42</span></div>
-      <div class="data-row"><span class="data-key">LTH realized price</span><span class="data-val">~$23,800</span></div>
-      <div class="data-row"><span class="data-key">LTH signal</span><span class="data-val green">HODLing strong</span></div>
+      <div class="data-row"><span class="data-key">MVRV Z-Score</span><span class="data-val amber" id="mvrv-z">—</span></div>
+      <div class="data-row"><span class="data-key">Puell Multiple</span><span class="data-val" id="puell">—</span></div>
+      <div class="data-row"><span class="data-key">Exchange reserve chg</span><span class="data-val" id="exchange-chg">—</span></div>
+      <div class="source-row"><span class="source-tag" id="onchain-note">ADD GLASSNODE_KEY FOR LIVE DATA</span></div>
     </div>
 
+    <!-- DEFI TVL -->
     <div class="card">
       <div class="card-header">
-        <div class="card-title">Exchange & Supply</div>
-        <div class="card-badge badge-green">ESTIMATED</div>
+        <div class="card-title">DeFi TVL — DefiLlama</div>
+        <div class="card-badge badge-green">LIVE</div>
       </div>
-      <div class="data-row"><span class="data-key">Exchange reserve chg</span><span class="data-val green">-2.1% (7d)</span></div>
-      <div class="data-row"><span class="data-key">MVRV Z-score</span><span class="data-val amber">~2.4</span></div>
-      <div class="data-row"><span class="data-key">Puell Multiple</span><span class="data-val green">~1.1</span></div>
-      <div class="data-row"><span class="data-key">Signal</span><span class="data-val green">Accumulation zone</span></div>
-      <div class="source-row"><span class="source-tag">NOTE: LIVE DATA NEEDS GLASSNODE API ($29/MO)</span></div>
+      <div class="data-row"><span class="data-key">Total DeFi TVL</span><span class="data-val green" id="total-tvl">—</span></div>
+      <div class="data-row"><span class="data-key">24h Change</span><span class="data-val" id="tvl-change">—</span></div>
+      <div id="top-protocols"></div>
+      <div class="source-row"><span class="source-tag">SRC: DEFILLAMA.COM</span></div>
     </div>
 
+    <!-- TOP CHAINS -->
     <div class="card">
       <div class="card-header">
-        <div class="card-title">Entity Flows (Arkham)</div>
-        <div class="card-badge badge-blue">FREE TIER</div>
+        <div class="card-title">Top Chains by TVL</div>
       </div>
-      <div class="data-row"><span class="data-key">Binance net flow</span><span class="data-val red">+8,400 BTC</span></div>
-      <div class="data-row"><span class="data-key">Coinbase net flow</span><span class="data-val green">-6,200 BTC</span></div>
-      <div class="data-row"><span class="data-key">Whale activity</span><span class="data-val amber">Mixed signals</span></div>
-      <div class="data-row"><span class="data-key">Miner outflow</span><span class="data-val amber">+1,100 BTC</span></div>
-      <div class="source-row"><span class="source-tag">SRC: ARKHAM INTELLIGENCE (ADD API KEY)</span></div>
+      <div id="top-chains"></div>
     </div>
   </div>
 
   <!-- RISK -->
   <div class="section" id="sec-risk">
+
+    <!-- FEAR & GREED -->
     <div class="card">
       <div class="card-header">
-        <div class="card-title">Overall Risk Level</div>
-        <div class="card-badge badge-amber" id="risk-badge">HIGH</div>
+        <div class="card-title">Fear & Greed Index</div>
+        <div class="card-badge badge-green">LIVE</div>
       </div>
-      <div class="risk-meter">
-        <div class="risk-track">
-          <div class="risk-needle" id="risk-needle" style="left:70%"></div>
-        </div>
-        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);font-family:var(--mono)">
-          <span>LOW</span><span>MED</span><span>HIGH</span>
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:10px">
+        <div style="font-family:var(--mono);font-size:42px;font-weight:500" id="fg-value">—</div>
+        <div>
+          <div style="font-size:14px;font-weight:500" id="fg-label">—</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:2px">Alternative.me</div>
         </div>
       </div>
+      <div class="risk-track" style="margin:8px 0">
+        <div class="risk-needle" id="fg-needle" style="left:50%"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);font-family:var(--mono);margin-bottom:8px">
+        <span>FEAR</span><span>NEUTRAL</span><span>GREED</span>
+      </div>
+      <div id="fg-history" style="display:flex;gap:4px;margin-top:6px"></div>
     </div>
 
+    <!-- WHALE ALERTS -->
     <div class="card">
       <div class="card-header">
-        <div class="card-title">Liquidations · 24h</div>
-        <div class="card-badge badge-red" id="total-liq">—</div>
+        <div class="card-title">Whale Alerts</div>
+        <div class="card-badge badge-blue" id="whale-badge">LOADING</div>
       </div>
-      <div style="margin:4px 0 8px">
-        <div class="liq-bar">
-          <span class="liq-label red">Longs</span>
-          <div class="liq-track"><div class="liq-fill" style="width:70%;background:var(--red)"></div></div>
-          <span class="liq-val red" id="long-liq">—</span>
-        </div>
-        <div class="liq-bar">
-          <span class="liq-label green">Shorts</span>
-          <div class="liq-track"><div class="liq-fill" style="width:30%;background:var(--green)"></div></div>
-          <span class="liq-val green" id="short-liq">—</span>
-        </div>
-      </div>
-      <div class="source-row"><span class="source-tag">SRC: COINGLASS (ADD API FOR LIVE DATA)</span></div>
+      <div id="whale-rows"><div class="error-msg">Loading whale data...</div></div>
+      <div class="source-row"><span class="source-tag">SRC: WHALE-ALERT.IO · ADD WHALE_KEY FOR LIVE</span></div>
     </div>
 
+    <!-- MACRO CALENDAR -->
     <div class="card">
       <div class="card-header">
-        <div class="card-title">Funding & OI</div>
+        <div class="card-title">Macro Calendar</div>
+        <div class="card-badge badge-amber">UPCOMING</div>
       </div>
-      <div class="data-row"><span class="data-key">BTC funding rate</span><span class="data-val amber" id="funding-rate">—</span></div>
-      <div class="data-row"><span class="data-key">Open interest</span><span class="data-val" id="open-interest">—</span></div>
-      <div class="data-row"><span class="data-key">BTC 30d volatility</span><span class="data-val red" id="btc-vol">—</span></div>
-      <div class="data-row"><span class="data-key">ETH 30d volatility</span><span class="data-val red" id="eth-vol">—</span></div>
+      <div id="macro-events"><div class="error-msg">Loading events...</div></div>
+      <div class="source-row"><span class="source-tag">FOMC · CPI · GDP · PCE</span></div>
     </div>
 
     <div class="card">
@@ -453,7 +446,7 @@
       </div>
       <div class="signal-box neutral" id="risk-signal-box">
         <div class="signal-title">Current Assessment</div>
-        <div class="signal-text" id="risk-text">Overleveraged longs with high funding rate. Exchange reserves declining (bullish) but volatility elevated. Size positions conservatively — 1-2% risk per trade max.</div>
+        <div class="signal-text" id="risk-text">Loading risk assessment...</div>
       </div>
     </div>
   </div>
@@ -721,7 +714,147 @@ async function fetchSentiment() {
   }
 }
 
-async function loadNews() {
+async function fetchOnChain() {
+  try {
+    const res = await fetch('/api/onchain');
+    const d = await res.json();
+    const isLive = d.source === 'glassnode';
+    document.getElementById('onchain-source-badge').textContent = isLive ? 'LIVE' : 'ESTIMATED';
+    document.getElementById('onchain-source-badge').className = 'card-badge ' + (isLive ? 'badge-green' : 'badge-amber');
+    const sopr = d.sth_sopr;
+    const soprEl = document.getElementById('sth-sopr');
+    soprEl.textContent = sopr ? sopr.toFixed(4) : '—';
+    soprEl.className = 'data-val ' + (sopr > 1 ? 'green' : sopr < 1 ? 'red' : 'amber');
+    document.getElementById('lth-sopr').textContent = d.lth_sopr ? d.lth_sopr.toFixed(4) : '—';
+    document.getElementById('lth-pct').textContent = d.lth_pct ? d.lth_pct + '%' : '—';
+    document.getElementById('onchain-signal').textContent = d.signal || '—';
+    const mvrv = d.mvrv_z;
+    const mvrvEl = document.getElementById('mvrv-z');
+    mvrvEl.textContent = mvrv ? mvrv.toFixed(2) : '—';
+    mvrvEl.className = 'data-val ' + (mvrv > 3 ? 'red' : mvrv > 2 ? 'amber' : 'green');
+    document.getElementById('puell').textContent = d.puell ? d.puell.toFixed(2) : '—';
+    const excEl = document.getElementById('exchange-chg');
+    excEl.textContent = d.exchange_chg ? d.exchange_chg.toFixed(2) + '%' : '—';
+    excEl.className = 'data-val ' + (d.exchange_chg < 0 ? 'green' : 'red');
+    if (d.note) document.getElementById('onchain-note').textContent = d.note.toUpperCase();
+  } catch(e) { console.error('OnChain error:', e); }
+}
+
+async function fetchDefi() {
+  try {
+    const res = await fetch('/api/defi');
+    const d = await res.json();
+    if (d.error) return;
+    document.getElementById('total-tvl').textContent = '$' + d.total_tvl.toFixed(1) + 'B';
+    const ovTvl = document.getElementById('overview-tvl');
+    if(ovTvl) ovTvl.textContent = '$' + d.total_tvl.toFixed(1) + 'B';
+    const chgEl = document.getElementById('tvl-change');
+    chgEl.textContent = (d.tvl_change >= 0 ? '+' : '') + d.tvl_change.toFixed(2) + '%';
+    chgEl.className = 'data-val ' + (d.tvl_change >= 0 ? 'green' : 'red');
+    const proto = document.getElementById('top-protocols');
+    proto.innerHTML = (d.top_protocols || []).slice(0,5).map(p =>
+      `<div class="data-row"><span class="data-key">${p.name}</span><span class="data-val ${p.change>=0?'green':'red'}">${p.tvl.toFixed(1)}B (${p.change>=0?'+':''}${p.change.toFixed(1)}%)</span></div>`
+    ).join('');
+    const chains = document.getElementById('top-chains');
+    chains.innerHTML = (d.top_chains || []).map(c =>
+      `<div class="data-row"><span class="data-key">${c.name}</span><span class="data-val">$${c.tvl.toFixed(1)}B</span></div>`
+    ).join('');
+  } catch(e) { console.error('DeFi error:', e); }
+}
+
+async function fetchFearGreed() {
+  try {
+    const res = await fetch('/api/feargreed');
+    const d = await res.json();
+    if (d.error) return;
+    const val = d.value;
+    const el = document.getElementById('fg-value');
+    el.textContent = val;
+    el.className = '';
+    el.style.color = val >= 75 ? 'var(--red)' : val >= 55 ? 'var(--amber)' : val >= 45 ? 'var(--text)' : val >= 25 ? 'var(--blue)' : 'var(--green)';
+    document.getElementById('fg-label').textContent = d.label;
+    document.getElementById('fg-needle').style.left = val + '%';
+    const hist = document.getElementById('fg-history');
+    hist.innerHTML = (d.history || []).reverse().map(h => {
+      const c = h.value >= 75 ? 'var(--red)' : h.value >= 55 ? 'var(--amber)' : h.value >= 45 ? 'var(--text2)' : 'var(--blue)';
+      return `<div style="flex:1;text-align:center">
+        <div style="font-family:var(--mono);font-size:13px;font-weight:500;color:${c}">${h.value}</div>
+        <div style="font-size:8px;color:var(--text3)">${new Date(h.date*1000).toLocaleDateString('en',{weekday:'short'})}</div>
+      </div>`;
+    }).join('');
+    updateRiskText(val);
+    // Update overview tab too
+    const ovFg = document.getElementById('overview-fg');
+    if(ovFg) { ovFg.textContent = val + ' — ' + d.label; ovFg.className = 'data-val ' + (val>=55?'amber':val>=75?'red':'green'); }
+  } catch(e) { console.error('F&G error:', e); }
+}
+
+function updateRiskText(fg) {
+  const el = document.getElementById('risk-text');
+  const box = document.getElementById('risk-signal-box');
+  if (fg >= 75) {
+    el.textContent = `Extreme Greed (${fg}) — market is euphoric. Historically a signal to reduce risk. Consider taking partial profits. Volatility likely to increase.`;
+    box.className = 'signal-box bearish';
+  } else if (fg >= 55) {
+    el.textContent = `Greed (${fg}) — bullish momentum but watch for exhaustion. Manage position sizes. Good time to review stop losses.`;
+    box.className = 'signal-box neutral';
+  } else if (fg >= 45) {
+    el.textContent = `Neutral (${fg}) — no clear directional bias from sentiment. Wait for confirmation. Monitor ETF flows and on-chain for next move.`;
+    box.className = 'signal-box neutral';
+  } else {
+    el.textContent = `Fear (${fg}) — market fearful. Historically good accumulation zone. Watch for capitulation signals. Size in carefully.`;
+    box.className = 'signal-box';
+  }
+}
+
+async function fetchWhales() {
+  try {
+    const res = await fetch('/api/whales');
+    const d = await res.json();
+    const whales = d.whales || [];
+    const container = document.getElementById('whale-rows');
+    const badge = document.getElementById('whale-badge');
+    if (d.note) { badge.textContent = 'SIMULATED'; badge.className = 'card-badge badge-amber'; }
+    else { badge.textContent = 'LIVE'; badge.className = 'card-badge badge-green'; }
+    container.innerHTML = whales.map(w => {
+      const isIn = w.to === 'exchange' || w.type === 'exchange_inflow';
+      const arrow = isIn ? '🔴' : '🟢';
+      const usd = w.usd >= 1e9 ? (w.usd/1e9).toFixed(2)+'B' : (w.usd/1e6).toFixed(0)+'M';
+      return `<div class="data-row">
+        <span class="data-key">${arrow} ${w.symbol} · ${w.from}→${w.to}</span>
+        <span class="data-val ${isIn?'red':'green'}">$${usd}</span>
+      </div>`;
+    }).join('');
+  } catch(e) { console.error('Whale error:', e); }
+}
+
+async function fetchMacro() {
+  try {
+    const res = await fetch('/api/macro');
+    const d = await res.json();
+    const events = d.events || [];
+    const container = document.getElementById('macro-events');
+    container.innerHTML = events.map(e => {
+      const imp = e.importance === 'high' ? 'red' : e.importance === 'medium' ? 'amber' : 'text2';
+      const days = e.days_away === 0 ? 'TODAY' : e.days_away === 1 ? 'TOMORROW' : `${e.days_away}d`;
+      return `<div class="data-row">
+        <span class="data-key">
+          <span class="${imp}" style="font-size:9px;margin-right:4px">●</span>
+          ${e.event}
+        </span>
+        <span class="data-val ${imp === 'red' ? 'red' : 'amber'}" style="font-size:10px">${days}</span>
+      </div>`;
+    }).join('');
+  } catch(e) { console.error('Macro error:', e); }
+}
+
+async function fetchOnChainAll() {
+  await Promise.allSettled([fetchOnChain(), fetchDefi()]);
+}
+
+async function fetchRiskAll() {
+  await Promise.allSettled([fetchFearGreed(), fetchWhales(), fetchMacro()]);
+}
   const container = document.getElementById('news-list');
   container.innerHTML = '<div class="error-msg">Loading...</div>';
   try {
@@ -742,13 +875,17 @@ async function loadNews() {
 }
 
 async function init() {
-  // Show wake-up message for Render free tier
   document.querySelector('.loading-text').textContent = 'WAKING UP SERVER...';
   await Promise.allSettled([
     fetchPrices(),
     fetchEtfs(),
     fetchSentiment(),
     loadNews(),
+    fetchFearGreed(),
+    fetchWhales(),
+    fetchMacro(),
+    fetchOnChain(),
+    fetchDefi(),
   ]);
   setTimeout(()=>{
     document.getElementById('loading').classList.add('hidden');
@@ -756,6 +893,9 @@ async function init() {
   setInterval(fetchPrices, 60000);
   setInterval(fetchEtfs, 300000);
   setInterval(fetchSentiment, 300000);
+  setInterval(fetchFearGreed, 300000);
+  setInterval(fetchWhales, 120000);
+  setInterval(fetchDefi, 300000);
 }
 
 init();
