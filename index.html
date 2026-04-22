@@ -207,9 +207,9 @@
   .loading-overlay {
     position: fixed; inset: 0; background: var(--bg);
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    z-index: 9999; gap: 16px; transition: opacity .4s;
+    z-index: 9999; gap: 16px;
   }
-  .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+  .loading-overlay.hidden { display: none !important; }
   .loading-logo { font-family: var(--mono); font-size: 22px; color: var(--green); letter-spacing: .1em; }
   .loading-bar-track { width: 160px; height: 2px; background: var(--bg3); border-radius: 1px; overflow: hidden; }
   .loading-bar-fill { height: 100%; background: var(--green); border-radius: 1px; animation: load 1.5s ease forwards; }
@@ -877,13 +877,18 @@ async function fetchRiskAll() {
 async function init() {
   document.querySelector('.loading-text').textContent = 'WAKING UP SERVER...';
 
-  // Force hide loading after 15 seconds max
+  // Force hide loading after 8 seconds no matter what
   setTimeout(()=>{
     document.getElementById('loading').classList.add('hidden');
-  }, 15000);
+  }, 8000);
 
-  await Promise.allSettled([
-    fetchPrices(),
+  // Hide as soon as prices load
+  fetchPrices().then(()=>{
+    document.getElementById('loading').classList.add('hidden');
+  });
+
+  // Load everything else in background
+  Promise.allSettled([
     fetchEtfs(),
     fetchSentiment(),
     loadNews(),
@@ -893,9 +898,7 @@ async function init() {
     fetchOnChain(),
     fetchDefi(),
   ]);
-  setTimeout(()=>{
-    document.getElementById('loading').classList.add('hidden');
-  }, 500);
+
   setInterval(fetchPrices, 60000);
   setInterval(fetchEtfs, 300000);
   setInterval(fetchSentiment, 300000);
