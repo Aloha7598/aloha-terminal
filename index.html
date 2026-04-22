@@ -572,9 +572,10 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
-async function fetchPrices() {
+async function fetchPrices(retries = 3) {
   try {
     const res = await fetch('/api/prices');
+    if (!res.ok) throw new Error('Bad response');
     const data = await res.json();
     const coins = {
       btc:['BTC-USD','btc-price','btc-chg'],
@@ -584,7 +585,7 @@ async function fetchPrices() {
     };
     for(const [key,[sym,priceId,chgId]] of Object.entries(coins)) {
       const d = data[sym];
-      if(!d) continue;
+      if(!d || !d.price) continue;
       const p = document.getElementById(priceId);
       const c = document.getElementById(chgId);
       p.textContent = '$'+d.price.toLocaleString(undefined,{maximumFractionDigits:2});
@@ -594,7 +595,7 @@ async function fetchPrices() {
     }
     const others = {xrp:'XRP-USD',doge:'DOGE-USD',ada:'ADA-USD',avax:'AVAX-USD'};
     for(const [id,sym] of Object.entries(others)) {
-      const d = data[sym]; if(!d) continue;
+      const d = data[sym]; if(!d || !d.price) continue;
       const el = document.getElementById(id+'-price');
       if(el) {
         const chg = d.change_pct;
@@ -604,7 +605,13 @@ async function fetchPrices() {
     }
     updateAiSignal(data);
     updateVolatility(data);
-  } catch(e) { console.error('Price fetch error:',e); }
+  } catch(e) {
+    console.error('Price fetch error:',e);
+    if(retries > 0) {
+      console.log(`Retrying prices... ${retries} left`);
+      setTimeout(() => fetchPrices(retries - 1), 5000);
+    }
+  }
 }
 
 function updateAiSignal(data) {
@@ -735,6 +742,8 @@ async function loadNews() {
 }
 
 async function init() {
+  // Show wake-up message for Render free tier
+  document.querySelector('.loading-text').textContent = 'WAKING UP SERVER...';
   await Promise.allSettled([
     fetchPrices(),
     fetchEtfs(),
