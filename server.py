@@ -151,11 +151,9 @@ def get_keyboard():
         web_app=WebAppInfo(url=APP_URL)
     )]])
 
-@app.route(f"/webhook/{TOKEN}", methods=["POST"])
+@app.route(f"/webhook", methods=["POST"])
 def webhook():
     from flask import request
-    from telegram import Update
-    from telegram.ext import ApplicationBuilder, CommandHandler
     asyncio.run(handle_update(request.get_json()))
     return "ok", 200
 
@@ -186,13 +184,13 @@ async def cmd_terminal(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 @app.route("/setup_webhook")
 def setup_webhook():
-    """Call this once to register the webhook with Telegram."""
-    webhook_url = f"{APP_URL}/webhook/{TOKEN}"
+    webhook_url = f"{APP_URL}/webhook"
     resp = requests.post(
         f"https://api.telegram.org/bot{TOKEN}/setWebhook",
-        json={"url": webhook_url}
+        json={"url": webhook_url, "drop_pending_updates": True}
     )
-    return jsonify(resp.json())
+    result = resp.json()
+    return jsonify({"webhook_url": webhook_url, "telegram_response": result})
 
 # ─────────────────────────────────────────────
 #  RUN
