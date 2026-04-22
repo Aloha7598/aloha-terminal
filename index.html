@@ -264,22 +264,22 @@
       <div class="metric-card">
         <div class="metric-label">Bitcoin</div>
         <div class="metric-value green" id="btc-price">—</div>
-        <div class="metric-sub" id="btc-chg">loading...</div>
+        <div class="metric-sub" id="btc-chg">—</div>
       </div>
       <div class="metric-card">
         <div class="metric-label">Ethereum</div>
         <div class="metric-value blue" id="eth-price">—</div>
-        <div class="metric-sub" id="eth-chg">loading...</div>
+        <div class="metric-sub" id="eth-chg">—</div>
       </div>
       <div class="metric-card">
         <div class="metric-label">Solana</div>
         <div class="metric-value purple" id="sol-price">—</div>
-        <div class="metric-sub" id="sol-chg">loading...</div>
+        <div class="metric-sub" id="sol-chg">—</div>
       </div>
       <div class="metric-card">
         <div class="metric-label">BNB</div>
         <div class="metric-value amber" id="bnb-price">—</div>
-        <div class="metric-sub" id="bnb-chg">loading...</div>
+        <div class="metric-sub" id="bnb-chg">—</div>
       </div>
     </div>
 
@@ -564,6 +564,7 @@ async function fetchPrices(retries = 3) {
     const res = await fetch('/api/prices');
     if (!res.ok) throw new Error('Bad response');
     const data = await res.json();
+    if (data.error) throw new Error(data.error);
     const coins = {
       btc:['BTC-USD','btc-price','btc-chg'],
       eth:['ETH-USD','eth-price','eth-chg'],
@@ -595,8 +596,14 @@ async function fetchPrices(retries = 3) {
   } catch(e) {
     console.error('Price fetch error:',e);
     if(retries > 0) {
-      console.log(`Retrying prices... ${retries} left`);
-      setTimeout(() => fetchPrices(retries - 1), 5000);
+      setTimeout(() => fetchPrices(retries - 1), 4000);
+    } else {
+      // Show error state
+      ['btc-price','eth-price','sol-price','bnb-price'].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.textContent = 'retry...';
+      });
+      setTimeout(() => fetchPrices(2), 10000);
     }
   }
 }
