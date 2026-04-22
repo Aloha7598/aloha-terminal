@@ -400,10 +400,31 @@ def setup_webhook():
     )
     return jsonify({"webhook_url": webhook_url, "telegram_response": resp.json()})
 
+@app.route("/ping")
+def ping():
+    return jsonify({"status": "alive", "time": datetime.datetime.utcnow().isoformat()})
+
+def keep_alive():
+    """Ping self every 10 minutes to prevent Render free tier from sleeping."""
+    import time
+    time.sleep(30)  # wait for server to start first
+    while True:
+        try:
+            if APP_URL:
+                requests.get(f"{APP_URL}/ping", timeout=10)
+                logging.info("Keep-alive ping sent")
+        except:
+            pass
+        time.sleep(600)  # ping every 10 minutes
+
 # ─────────────────────────────────────────────
 #  RUN
 # ─────────────────────────────────────────────
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     print("✅ Aloha Terminal running on port", port)
+    # Start keep-alive thread
+    import threading
+    ping_thread = threading.Thread(target=keep_alive, daemon=True)
+    ping_thread.start()
     app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
