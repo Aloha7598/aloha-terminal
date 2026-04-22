@@ -167,11 +167,15 @@ async def terminal(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 # ─────────────────────────────────────────────
 #  RUN BOTH
 # ─────────────────────────────────────────────
+import asyncio
+
 def run_flask():
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
 
 def run_bot():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     tg_app = ApplicationBuilder().token(TOKEN).build()
     tg_app.add_handler(CommandHandler("start",    start))
     tg_app.add_handler(CommandHandler("terminal", terminal))
@@ -179,6 +183,6 @@ def run_bot():
     tg_app.run_polling()
 
 if __name__ == "__main__":
-    flask_thread = threading.Thread(target=run_flask, daemon=True)
-    flask_thread.start()
-    run_bot()
+    bot_thread = threading.Thread(target=run_bot, daemon=True)
+    bot_thread.start()
+    run_flask()
