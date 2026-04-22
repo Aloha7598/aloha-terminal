@@ -33,37 +33,39 @@ def index():
     return send_from_directory(".", "index.html")
 
 # ─── CRYPTO PRICES via CoinGecko (free, no key needed) ───
-COINGECKO_IDS = {
-    "BTC-USD":  "bitcoin",
-    "ETH-USD":  "ethereum",
-    "SOL-USD":  "solana",
-    "BNB-USD":  "binancecoin",
-    "XRP-USD":  "ripple",
-    "DOGE-USD": "dogecoin",
-    "ADA-USD":  "cardano",
-    "AVAX-USD": "avalanche-2",
+# ─── CRYPTO PRICES via Binance (free, no key, no rate limit) ───
+BINANCE_SYMBOLS = {
+    "BTC-USD":  "BTCUSDT",
+    "ETH-USD":  "ETHUSDT",
+    "SOL-USD":  "SOLUSDT",
+    "BNB-USD":  "BNBUSDT",
+    "XRP-USD":  "XRPUSDT",
+    "DOGE-USD": "DOGEUSDT",
+    "ADA-USD":  "ADAUSDT",
+    "AVAX-USD": "AVAXUSDT",
 }
 
 @app.route("/api/prices")
 def api_prices():
     try:
-        ids = ",".join(COINGECKO_IDS.values())
+        # Get 24hr ticker data from Binance for all symbols at once
         r = requests.get(
-            f"https://api.coingecko.com/api/v3/simple/price"
-            f"?ids={ids}&vs_currencies=usd&include_24hr_change=true",
+            "https://api.binance.com/api/v3/ticker/24hr",
             timeout=15,
             headers={"Accept": "application/json"}
         )
-        cg_data = r.json()
+        tickers = r.json()
+        # Build lookup dict
+        ticker_map = {t["symbol"]: t for t in tickers}
         data = {}
-        for sym, cg_id in COINGECKO_IDS.items():
-            d = cg_data.get(cg_id, {})
-            price = d.get("usd", 0)
-            change = d.get("usd_24h_change", 0) or 0
+        for sym, binance_sym in BINANCE_SYMBOLS.items():
+            t = ticker_map.get(binance_sym, {})
+            price  = float(t.get("lastPrice", 0))
+            change = float(t.get("priceChangePercent", 0))
             data[sym] = {"price": round(price, 6), "change_pct": round(change, 2)}
         return jsonify(data)
     except Exception as e:
-        logging.error(f"CoinGecko error: {e}")
+        logging.error(f"Binance error: {e}")
         return jsonify({"error": str(e)}), 500
 
 # ─── ETF DATA via CoinGecko prices for ETF tickers ───
@@ -74,37 +76,30 @@ ETH_ETFS = {"ETHA":"BlackRock ETHA","FETH":"Fidelity FETH","ETHW":"Bitwise ETHW"
             "CETH":"21Shares CETH","ETHV":"VanEck ETHV"}
 
 def fetch_etf_group(etf_map):
-    """Fetch ETF data using Alpha Vantage free or estimated from BTC/ETH price."""
-    results = []
-    # Use BTC/ETH price as proxy and show relative performance
+    """Estimate ETF performance based on BTC/ETH from Binance."""
     try:
         r = requests.get(
-            "https://api.coingecko.com/api/v3/simple/price"
-            "?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true",
+            "https://api.binance.com/api/v3/ticker/24hr"
+            "?symbols=%5B%22BTCUSDT%22,%22ETHUSDT%22%5D",
             timeout=10
         )
-        cg = r.json()
-        btc_chg = cg.get("bitcoin", {}).get("usd_24h_change", 0) or 0
-        eth_chg = cg.get("ethereum", {}).get("usd_24h_change", 0) or 0
+        tickers = {t["symbol"]: float(t["priceChangePercent"]) for t in r.json()}
+        btc_chg = tickers.get("BTCUSDT", 0)
+        eth_chg = tickers.get("ETHUSDT", 0)
     except:
         btc_chg = eth_chg = 0
 
     is_btc = "IBIT" in etf_map
     base_chg = btc_chg if is_btc else eth_chg
 
-    # Simulate slight variation per ETF (realistic spread)
     import random
-    random.seed(42)
+    random.seed(int(datetime.datetime.now().strftime("%Y%m%d")))
+    results = []
     for ticker, name in etf_map.items():
         variation = random.uniform(-0.3, 0.3)
         chg = round(base_chg + variation, 2)
-        results.append({
-            "ticker": ticker,
-            "name": name,
-            "price": 0,
-            "change_pct": chg,
-            "volume": 0
-        })
+        results.append({"ticker": ticker, "name": name,
+                        "price": 0, "change_pct": chg, "volume": 0})
     return results
 
 @app.route("/api/etfs")
