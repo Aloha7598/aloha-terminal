@@ -140,49 +140,64 @@ def api_news():
     return jsonify({"articles": articles[:15]})
 
 # ─────────────────────────────────────────────
-#  TELEGRAM BOT
-# ─────────────────────────────────────────────
-async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    keyboard = [[InlineKeyboardButton(
-        "Open Aloha Terminal",
-        web_app=WebAppInfo(url=APP_URL)
-    )]]
-    await update.message.reply_text(
-        "🚀 *Aloha Terminal*\n\n"
-        "Your crypto trading dashboard — tap below to open.",
-        parse_mode="Markdown",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
-
-async def terminal(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    keyboard = [[InlineKeyboardButton(
-        "Open Terminal",
-        web_app=WebAppInfo(url=APP_URL)
-    )]]
-    await update.message.reply_text(
-        "📊 Tap to open your live trading terminal:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
-
-# ─────────────────────────────────────────────
-#  RUN BOTH
+#  TELEGRAM BOT via WEBHOOK
 # ─────────────────────────────────────────────
 import asyncio
+from telegram import Bot
 
-def run_flask():
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
+def get_keyboard():
+    return InlineKeyboardMarkup([[InlineKeyboardButton(
+        "🚀 Open Aloha Terminal",
+        web_app=WebAppInfo(url=APP_URL)
+    )]])
 
-def run_bot():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    tg_app = ApplicationBuilder().token(TOKEN).build()
-    tg_app.add_handler(CommandHandler("start",    start))
-    tg_app.add_handler(CommandHandler("terminal", terminal))
-    print("✅ Aloha Terminal bot running...")
-    tg_app.run_polling()
+@app.route(f"/webhook/{TOKEN}", methods=["POST"])
+def webhook():
+    from flask import request
+    from telegram import Update
+    from telegram.ext import ApplicationBuilder, CommandHandler
+    asyncio.run(handle_update(request.get_json()))
+    return "ok", 200
 
+tg_app_global = None
+
+async def handle_update(data):
+    global tg_app_global
+    if tg_app_global is None:
+        tg_app_global = ApplicationBuilder().token(TOKEN).build()
+        tg_app_global.add_handler(CommandHandler("start",    cmd_start))
+        tg_app_global.add_handler(CommandHandler("terminal", cmd_terminal))
+        await tg_app_global.initialize()
+    update = Update.de_json(data, tg_app_global.bot)
+    await tg_app_global.process_update(update)
+
+async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "🚀 *Aloha Terminal*\n\nYour crypto trading dashboard — tap below to open.",
+        parse_mode="Markdown",
+        reply_markup=get_keyboard()
+    )
+
+async def cmd_terminal(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "📊 Tap to open your live trading terminal:",
+        reply_markup=get_keyboard()
+    )
+
+@app.route("/setup_webhook")
+def setup_webhook():
+    """Call this once to register the webhook with Telegram."""
+    webhook_url = f"{APP_URL}/webhook/{TOKEN}"
+    resp = requests.post(
+        f"https://api.telegram.org/bot{TOKEN}/setWebhook",
+        json={"url": webhook_url}
+    )
+    return jsonify(resp.json())
+
+# ─────────────────────────────────────────────
+#  RUN
+# ─────────────────────────────────────────────
 if __name__ == "__main__":
-    bot_thread = threading.Thread(target=run_bot, daemon=True)
-    bot_thread.start()
-    run_flask()
+    port = int(os.environ.get("PORT", 10000))
+    print("✅ Aloha Terminal running on port", port)
+    app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
