@@ -876,6 +876,12 @@ async function fetchRiskAll() {
 
 async function init() {
   document.querySelector('.loading-text').textContent = 'WAKING UP SERVER...';
+
+  // Force hide loading after 15 seconds max
+  setTimeout(()=>{
+    document.getElementById('loading').classList.add('hidden');
+  }, 15000);
+
   await Promise.allSettled([
     fetchPrices(),
     fetchEtfs(),
@@ -889,7 +895,7 @@ async function init() {
   ]);
   setTimeout(()=>{
     document.getElementById('loading').classList.add('hidden');
-  }, 1500);
+  }, 500);
   setInterval(fetchPrices, 60000);
   setInterval(fetchEtfs, 300000);
   setInterval(fetchSentiment, 300000);
