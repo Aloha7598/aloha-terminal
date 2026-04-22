@@ -239,12 +239,6 @@
 
 <div class="scanline"></div>
 
-<div class="loading-overlay" id="loading">
-  <div class="loading-logo">ALOHA//</div>
-  <div class="loading-bar-track"><div class="loading-bar-fill"></div></div>
-  <div class="loading-text">INITIALIZING TERMINAL...</div>
-</div>
-
 <header>
   <div class="logo">ALOHA<span>//</span>TERMINAL</div>
   <div class="header-right">
@@ -875,30 +869,18 @@ async function fetchRiskAll() {
 }
 
 async function init() {
-  document.querySelector('.loading-text').textContent = 'WAKING UP SERVER...';
-
-  // Force hide loading after 8 seconds no matter what
-  setTimeout(()=>{
-    document.getElementById('loading').classList.add('hidden');
-  }, 8000);
-
-  // Hide as soon as prices load
-  fetchPrices().then(()=>{
-    document.getElementById('loading').classList.add('hidden');
-  });
-
-  // Load everything else in background
-  Promise.allSettled([
-    fetchEtfs(),
-    fetchSentiment(),
-    loadNews(),
-    fetchFearGreed(),
-    fetchWhales(),
-    fetchMacro(),
-    fetchOnChain(),
-    fetchDefi(),
-  ]);
-
+  // Load prices first (fastest)
+  fetchPrices();
+  // Load everything else
+  fetchEtfs();
+  fetchSentiment();
+  loadNews();
+  fetchFearGreed();
+  fetchWhales();
+  fetchMacro();
+  fetchOnChain();
+  fetchDefi();
+  // Refresh intervals
   setInterval(fetchPrices, 60000);
   setInterval(fetchEtfs, 300000);
   setInterval(fetchSentiment, 300000);
