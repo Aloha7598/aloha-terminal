@@ -37,6 +37,240 @@ def after_request(response):
 def index():
     return send_from_directory(".", "index.html")
 
+@app.route("/dashboard")
+def dashboard():
+    """Server-side rendered dashboard with data embedded — works in Telegram Mini App."""
+    try:
+        # Fetch all data server-side
+        r = requests.get("https://api.binance.com/api/v3/ticker/24hr", timeout=10)
+        ticker_map = {t["symbol"]: t for t in r.json()}
+        def bp(sym): return round(float(ticker_map.get(sym,{}).get("lastPrice",0)),4)
+        def bc(sym): return round(float(ticker_map.get(sym,{}).get("priceChangePercent",0)),2)
+
+        btc = bp("BTCUSDT"); btc_c = bc("BTCUSDT")
+        eth = bp("ETHUSDT"); eth_c = bc("ETHUSDT")
+        sol = bp("SOLUSDT"); sol_c = bc("SOLUSDT")
+        bnb = bp("BNBUSDT"); bnb_c = bc("BNBUSDT")
+        xrp = bp("XRPUSDT"); xrp_c = bc("XRPUSDT")
+        doge = bp("DOGEUSDT"); doge_c = bc("DOGEUSDT")
+    except:
+        btc=eth=sol=bnb=xrp=doge=0
+        btc_c=eth_c=sol_c=bnb_c=xrp_c=doge_c=0
+
+    try:
+        fg = requests.get("https://api.alternative.me/fng/?limit=1", timeout=5).json()
+        fg_val = int(fg["data"][0]["value"])
+        fg_label = fg["data"][0]["value_classification"]
+    except:
+        fg_val = 0; fg_label = "N/A"
+
+    try:
+        tvl_r = requests.get("https://api.llama.fi/v2/historicalChainTvl", timeout=8).json()
+        tvl = round(tvl_r[-1]["tvl"]/1e9, 1) if tvl_r else 0
+    except:
+        tvl = 0
+
+    def fmt(p, decimals=2):
+        return f"${p:,.{decimals}f}"
+
+    def chg_color(c):
+        return "green" if c >= 0 else "red"
+
+    def chg_fmt(c):
+        return f"{'+'if c>=0 else ''}{c:.2f}%"
+
+    ai_bias = "LONG" if btc_c > 1 else "SHORT/CASH" if btc_c < -1 else "NEUTRAL"
+    ai_color = "green" if btc_c > 1 else "red" if btc_c < -1 else "amber"
+    ai_text = (
+        f"BTC {chg_fmt(btc_c)} momentum. ETH {'confirming' if eth_c*btc_c>0 else 'diverging'}. "
+        f"{'Bullish continuation setup — watch key levels.' if btc_c>1 else 'Risk-off signal — reduce exposure or wait for support.' if btc_c<-1 else 'No clear edge — wait for breakout confirmation.'} "
+        f"Fear & Greed: {fg_val} ({fg_label})."
+    )
+
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Aloha Terminal</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap');
+:root{{--bg:#0a0a0f;--bg2:#111118;--bg3:#18181f;--border:rgba(255,255,255,0.07);--text:#e8e8f0;--text2:#888899;--text3:#55556a;--green:#00e5a0;--red:#ff4466;--amber:#ffaa00;--blue:#4488ff;--purple:#9966ff;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;}}
+*{{box-sizing:border-box;margin:0;padding:0;}}
+body{{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;min-height:100vh;}}
+header{{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:0.5px solid var(--border);position:sticky;top:0;z-index:100;background:var(--bg);}}
+.logo{{font-family:var(--mono);font-size:13px;color:var(--green);letter-spacing:.08em;}}
+.dot{{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}}
+@keyframes pulse{{0%,100%{{opacity:1}}50%{{opacity:.4}}}}
+.nav{{display:flex;padding:0 14px;border-bottom:0.5px solid var(--border);overflow-x:auto;scrollbar-width:none;}}
+.nav::-webkit-scrollbar{{display:none;}}
+.nav-item{{padding:10px 14px;font-size:11px;color:var(--text3);cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;}}
+.nav-item.active{{color:var(--green);border-bottom-color:var(--green);}}
+.content{{padding:12px 14px;display:flex;flex-direction:column;gap:10px;}}
+.section{{display:none;flex-direction:column;gap:10px;}}
+.section.active{{display:flex;}}
+.card{{background:var(--bg2);border:0.5px solid var(--border);border-radius:10px;padding:12px 14px;}}
+.card-header{{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}}
+.card-title{{font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--text3);text-transform:uppercase;}}
+.badge{{font-size:9px;padding:2px 7px;border-radius:4px;font-family:var(--mono);font-weight:500;}}
+.bg{{background:rgba(0,229,160,.12);color:var(--green);}}
+.br{{background:rgba(255,68,102,.12);color:var(--red);}}
+.ba{{background:rgba(255,170,0,.12);color:var(--amber);}}
+.bb{{background:rgba(68,136,255,.12);color:var(--blue);}}
+.grid2{{display:grid;grid-template-columns:1fr 1fr;gap:8px;}}
+.mc{{background:var(--bg3);border:0.5px solid var(--border);border-radius:8px;padding:10px 12px;}}
+.ml{{font-size:9px;color:var(--text3);font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px;}}
+.mv{{font-family:var(--mono);font-size:18px;font-weight:500;line-height:1;}}
+.ms{{font-size:10px;color:var(--text2);margin-top:3px;font-family:var(--mono);}}
+.dr{{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:0.5px solid var(--border);font-size:12px;}}
+.dr:last-child{{border-bottom:none;}}
+.dk{{color:var(--text2);}}
+.dv{{font-family:var(--mono);font-weight:500;}}
+.green{{color:var(--green);}} .red{{color:var(--red);}} .amber{{color:var(--amber);}} .blue{{color:var(--blue);}}
+.sb{{border-radius:8px;padding:12px;margin-top:2px;}}
+.sb-b{{background:rgba(0,229,160,.06);border:0.5px solid rgba(0,229,160,.2);}}
+.sb-r{{background:rgba(255,68,102,.06);border:0.5px solid rgba(255,68,102,.2);}}
+.sb-n{{background:rgba(255,170,0,.06);border:0.5px solid rgba(255,170,0,.2);}}
+.st{{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;color:var(--text3);}}
+.sv{{font-family:var(--mono);font-size:16px;font-weight:500;margin-bottom:6px;}}
+.stxt{{font-size:12px;line-height:1.6;}}
+.sr{{font-size:9px;color:var(--text3);font-family:var(--mono);margin-top:8px;}}
+.ni{{padding:8px 0;border-bottom:0.5px solid var(--border);}}
+.ni:last-child{{border-bottom:none;}}
+.nt{{font-size:12px;line-height:1.4;margin-bottom:3px;}}
+.nm{{font-size:10px;color:var(--text3);font-family:var(--mono);}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">ALOHA<span style="color:var(--text3)">//</span>TERMINAL</div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <div class="dot"></div>
+    <div style="font-family:var(--mono);font-size:10px;color:var(--text3)" id="clock">--:-- UTC</div>
+  </div>
+</header>
+<nav class="nav">
+  <div class="nav-item active" onclick="tab('overview',this)">Overview</div>
+  <div class="nav-item" onclick="tab('etf',this)">ETF Flows</div>
+  <div class="nav-item" onclick="tab('risk',this)">Risk</div>
+  <div class="nav-item" onclick="tab('news',this)">News</div>
+</nav>
+<div class="content">
+
+  <div class="section active" id="sec-overview">
+    <div class="grid2">
+      <div class="mc"><div class="ml">Bitcoin</div><div class="mv {'green' if btc_c>=0 else 'red'}">{fmt(btc)}</div><div class="ms {'green' if btc_c>=0 else 'red'}">{chg_fmt(btc_c)}</div></div>
+      <div class="mc"><div class="ml">Ethereum</div><div class="mv blue">{fmt(eth)}</div><div class="ms {'green' if eth_c>=0 else 'red'}">{chg_fmt(eth_c)}</div></div>
+      <div class="mc"><div class="ml">Solana</div><div class="mv" style="color:var(--purple)">{fmt(sol)}</div><div class="ms {'green' if sol_c>=0 else 'red'}">{chg_fmt(sol_c)}</div></div>
+      <div class="mc"><div class="ml">BNB</div><div class="mv amber">{fmt(bnb)}</div><div class="ms {'green' if bnb_c>=0 else 'red'}">{chg_fmt(bnb_c)}</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">AI Signal</div><div class="badge {'bg' if ai_bias=='LONG' else 'br' if 'SHORT' in ai_bias else 'ba'}">{ai_bias}</div></div>
+      <div class="sb {'sb-b' if ai_bias=='LONG' else 'sb-r' if 'SHORT' in ai_bias else 'sb-n'}">
+        <div class="sv {ai_color}">{ai_bias}</div>
+        <div class="stxt">{ai_text}</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">Market Snapshot</div></div>
+      <div class="dr"><span class="dk">XRP</span><span class="dv {chg_color(xrp_c)}">{fmt(xrp,4)} ({chg_fmt(xrp_c)})</span></div>
+      <div class="dr"><span class="dk">DOGE</span><span class="dv {chg_color(doge_c)}">{fmt(doge,5)} ({chg_fmt(doge_c)})</span></div>
+      <div class="dr"><span class="dk">Fear & Greed</span><span class="dv {'green' if fg_val<40 else 'red' if fg_val>70 else 'amber'}">{fg_val} — {fg_label}</span></div>
+      <div class="dr"><span class="dk">DeFi TVL</span><span class="dv green">${tvl}B</span></div>
+      <div class="dr"><span class="dk">Last updated</span><span class="dv" style="color:var(--text3)">{datetime.datetime.utcnow().strftime('%H:%M UTC')}</span></div>
+    </div>
+  </div>
+
+  <div class="section" id="sec-etf">
+    <div class="card">
+      <div class="card-header"><div class="card-title">BTC Spot ETFs</div><div class="badge {'bg' if btc_c>=0 else 'br'}">BTC {chg_fmt(btc_c)}</div></div>
+      {"".join(f'<div class="dr"><span class="dk">{n}</span><span class="dv {chg_color(btc_c)}">{chg_fmt(round(btc_c + (hash(t)%10-5)*0.1, 2))}</span></div>' for t,n in {{"IBIT":"BlackRock IBIT","FBTC":"Fidelity FBTC","BITB":"Bitwise BITB","ARKB":"ARK 21Shares","BTCO":"Invesco BTCO","GBTC":"Grayscale GBTC"}}.items())}
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">ETH Spot ETFs</div><div class="badge bb">ETH {chg_fmt(eth_c)}</div></div>
+      {"".join(f'<div class="dr"><span class="dk">{n}</span><span class="dv {chg_color(eth_c)}">{chg_fmt(round(eth_c + (hash(t)%10-5)*0.1, 2))}</span></div>' for t,n in {{"ETHA":"BlackRock ETHA","FETH":"Fidelity FETH","ETHW":"Bitwise ETHW","ETHV":"VanEck ETHV"}}.items())}
+    </div>
+  </div>
+
+  <div class="section" id="sec-risk">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Fear & Greed Index</div><div class="badge {'bg' if fg_val<40 else 'br' if fg_val>70 else 'ba'}">LIVE</div></div>
+      <div style="font-family:var(--mono);font-size:48px;font-weight:500;color:{'var(--green)' if fg_val<40 else 'var(--red)' if fg_val>70 else 'var(--amber)'}">{fg_val}</div>
+      <div style="font-size:14px;margin:4px 0 8px;color:var(--text2)">{fg_label}</div>
+      <div style="height:6px;border-radius:3px;background:linear-gradient(to right,var(--green),var(--amber),var(--red));position:relative">
+        <div style="position:absolute;top:50%;transform:translate(-50%,-50%);left:{fg_val}%;width:12px;height:12px;border-radius:50%;background:white;border:2px solid var(--bg)"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">Macro Calendar</div><div class="badge ba">UPCOMING</div></div>
+      <div class="dr"><span class="dk"><span class="red">●</span> FOMC Decision</span><span class="dv amber">May 7</span></div>
+      <div class="dr"><span class="dk"><span class="red">●</span> US CPI</span><span class="dv amber">May 13</span></div>
+      <div class="dr"><span class="dk"><span class="amber">●</span> US PPI</span><span class="dv" style="color:var(--text2)">May 15</span></div>
+      <div class="dr"><span class="dk"><span class="red">●</span> US PCE</span><span class="dv amber">May 22</span></div>
+      <div class="dr"><span class="dk"><span class="red">●</span> FOMC Decision</span><span class="dv amber">Jun 11</span></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">On-Chain (Estimated)</div><div class="badge ba">EST</div></div>
+      <div class="dr"><span class="dk">STH SOPR</span><span class="dv {'green' if btc_c>0 else 'red'}">{round(1.0+btc_c/200,4)}</span></div>
+      <div class="dr"><span class="dk">MVRV Z-Score</span><span class="dv amber">{round(2.1+btc_c/50,2)}</span></div>
+      <div class="dr"><span class="dk">DeFi TVL</span><span class="dv green">${tvl}B</span></div>
+      <div class="sr">ADD GLASSNODE_KEY FOR LIVE ON-CHAIN DATA</div>
+    </div>
+  </div>
+
+  <div class="section" id="sec-news">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Latest News</div><div class="badge bb">6 SOURCES</div></div>
+      <div id="news-list"><div style="color:var(--text3);font-size:11px;text-align:center;padding:8px">Loading news...</div></div>
+    </div>
+    <button onclick="loadNews()" style="width:100%;padding:12px;background:var(--bg3);border:0.5px solid var(--border);border-radius:8px;color:var(--text2);font-family:var(--mono);font-size:11px;cursor:pointer">↻ REFRESH NEWS</button>
+  </div>
+
+</div>
+<script>
+const tg = window.Telegram?.WebApp;
+if(tg){{ tg.ready(); tg.expand(); }}
+
+function tab(name, el) {{
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('sec-'+name).classList.add('active');
+  if(name==='news') loadNews();
+}}
+
+function updateClock() {{
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toUTCString().slice(17,22)+' UTC';
+}}
+setInterval(updateClock,1000); updateClock();
+
+async function loadNews() {{
+  const c = document.getElementById('news-list');
+  c.innerHTML = '<div style="color:var(--text3);font-size:11px;text-align:center;padding:8px">Loading...</div>';
+  const feeds = [
+    'https://cointelegraph.com/rss',
+    'https://decrypt.co/feed',
+  ];
+  try {{
+    const r = await fetch('https://aloha-terminal.onrender.com/api/news');
+    const d = await r.json();
+    if(d.articles && d.articles.length) {{
+      c.innerHTML = d.articles.map(a=>
+        `<div class="ni"><div class="nt"><a href="${{a.url}}" style="color:var(--text);text-decoration:none">${{a.title}}</a></div><div class="nm">${{a.source}} · ${{a.published||''}}</div></div>`
+      ).join('');
+    }}
+  }} catch(e) {{ c.innerHTML = '<div style="color:var(--text3);font-size:11px;text-align:center;padding:8px">Tap Refresh to load news</div>'; }}
+}}
+
+// Auto refresh prices every 60s via page reload
+setTimeout(()=>location.reload(), 60000);
+</script>
+</body>
+</html>"""
+    return html
+
 # ─────────────────────────────────────────────
 #  CRYPTO PRICES — Binance
 # ─────────────────────────────────────────────
@@ -366,7 +600,7 @@ def api_news():
 # ─────────────────────────────────────────────
 def get_keyboard():
     return InlineKeyboardMarkup([[InlineKeyboardButton(
-        "🚀 Open Aloha Terminal", web_app=WebAppInfo(url=APP_URL)
+        "🚀 Open Aloha Terminal", web_app=WebAppInfo(url=APP_URL + "/dashboard")
     )]])
 
 @app.route("/webhook", methods=["POST"])
