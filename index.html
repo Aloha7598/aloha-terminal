@@ -542,8 +542,16 @@ const API_BASE = 'https://aloha-terminal.onrender.com';
 function switchTab(tab) {
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+
   document.querySelector(`.nav-item[onclick*="${tab}"]`).classList.add('active');
   document.getElementById(`sec-${tab}`).classList.add('active');
+
+  // 🔥 LOAD DATA WHEN TAB SWITCHES
+  if (tab === 'etf') fetchEtfs();
+  if (tab === 'onchain') fetchOnChainAll();
+  if (tab === 'risk') fetchRiskAll();
+  if (tab === 'sentiment') fetchSentiment();
+  if (tab === 'news') loadNews();
 }
 
 function switchEtfTab(coin, el) {
