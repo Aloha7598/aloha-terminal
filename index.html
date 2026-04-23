@@ -2,997 +2,129 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Aloha Terminal</title>
+
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
+body { background:#0a0a0f; color:white; font-family:sans-serif; }
+.nav { display:flex; gap:10px; padding:10px; }
+.nav-item { cursor:pointer; opacity:.5; }
+.nav-item.active { opacity:1; color:#00e5a0; }
 
-  :root {
-    --bg: #0a0a0f;
-    --bg2: #111118;
-    --bg3: #18181f;
-    --border: rgba(255,255,255,0.07);
-    --border2: rgba(255,255,255,0.12);
-    --text: #e8e8f0;
-    --text2: #888899;
-    --text3: #55556a;
-    --green: #00e5a0;
-    --red: #ff4466;
-    --amber: #ffaa00;
-    --blue: #4488ff;
-    --purple: #9966ff;
-    --mono: 'IBM Plex Mono', monospace;
-    --sans: 'IBM Plex Sans', sans-serif;
-  }
+.section { display:none; padding:10px; }
+.section.active { display:block; }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--sans);
-    font-size: 13px;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  .scanline {
-    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
-    pointer-events: none; z-index: 1000;
-  }
-
-  header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 14px 10px;
-    border-bottom: 0.5px solid var(--border);
-    background: var(--bg);
-    position: sticky; top: 0; z-index: 100;
-  }
-
-  .logo {
-    font-family: var(--mono); font-size: 13px; font-weight: 500;
-    color: var(--green); letter-spacing: .08em;
-  }
-  .logo span { color: var(--text3); }
-
-  .header-right { display: flex; align-items: center; gap: 8px; }
-
-  .live-dot {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: var(--green);
-    animation: pulse 2s ease-in-out infinite;
-  }
-  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.8)} }
-
-  .time-label { font-family: var(--mono); font-size: 10px; color: var(--text3); }
-
-  .nav {
-    display: flex; gap: 0; padding: 0 14px;
-    border-bottom: 0.5px solid var(--border);
-    overflow-x: auto; scrollbar-width: none;
-  }
-  .nav::-webkit-scrollbar { display: none; }
-
-  .nav-item {
-    padding: 10px 14px; font-size: 11px; font-weight: 500;
-    color: var(--text3); cursor: pointer; white-space: nowrap;
-    border-bottom: 2px solid transparent; transition: all .2s;
-    letter-spacing: .04em;
-  }
-  .nav-item.active { color: var(--green); border-bottom-color: var(--green); }
-  .nav-item:hover { color: var(--text); }
-
-  .content { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
-
-  .section { display: none; flex-direction: column; gap: 10px; }
-  .section.active { display: flex; }
-
-  .card {
-    background: var(--bg2); border: 0.5px solid var(--border);
-    border-radius: 10px; padding: 12px 14px;
-  }
-
-  .card-header {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 10px;
-  }
-  .card-title {
-    font-family: var(--mono); font-size: 9px; letter-spacing: .1em;
-    color: var(--text3); text-transform: uppercase;
-  }
-  .card-badge {
-    font-size: 9px; padding: 2px 7px; border-radius: 4px;
-    font-family: var(--mono); font-weight: 500;
-  }
-  .badge-green { background: rgba(0,229,160,.12); color: var(--green); }
-  .badge-red { background: rgba(255,68,102,.12); color: var(--red); }
-  .badge-amber { background: rgba(255,170,0,.12); color: var(--amber); }
-  .badge-blue { background: rgba(68,136,255,.12); color: var(--blue); }
-
-  .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .metric-card {
-    background: var(--bg3); border: 0.5px solid var(--border);
-    border-radius: 8px; padding: 10px 12px;
-  }
-  .metric-label { font-size: 9px; color: var(--text3); font-family: var(--mono); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 4px; }
-  .metric-value { font-family: var(--mono); font-size: 18px; font-weight: 500; line-height: 1; }
-  .metric-sub { font-size: 10px; color: var(--text2); margin-top: 3px; font-family: var(--mono); }
-  .green { color: var(--green); }
-  .red { color: var(--red); }
-  .amber { color: var(--amber); }
-  .blue { color: var(--blue); }
-  .purple { color: var(--purple); }
-
-  .data-row {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 7px 0; border-bottom: 0.5px solid var(--border);
-    font-size: 12px;
-  }
-  .data-row:last-child { border-bottom: none; padding-bottom: 0; }
-  .data-row:first-child { padding-top: 0; }
-  .data-key { color: var(--text2); }
-  .data-val { font-family: var(--mono); font-weight: 500; }
-
-  .coin-row {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 8px 0; border-bottom: 0.5px solid var(--border);
-  }
-  .coin-row:last-child { border-bottom: none; }
-  .coin-name { font-weight: 500; font-size: 13px; }
-  .coin-sym { font-size: 10px; color: var(--text3); font-family: var(--mono); margin-top: 1px; }
-  .coin-right { text-align: right; }
-  .coin-price { font-family: var(--mono); font-size: 13px; font-weight: 500; }
-  .coin-chg { font-size: 10px; font-family: var(--mono); margin-top: 1px; }
-
-  .etf-row {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 6px 0; border-bottom: 0.5px solid var(--border); font-size: 12px;
-  }
-  .etf-row:last-child { border-bottom: none; }
-  .etf-name { color: var(--text2); font-size: 11px; }
-  .etf-flow { font-family: var(--mono); font-weight: 500; font-size: 12px; }
-
-  .sentiment-bar {
-    height: 6px; border-radius: 3px; background: var(--bg3);
-    overflow: hidden; margin-top: 6px;
-  }
-  .sentiment-fill { height: 100%; border-radius: 3px; transition: width .6s ease; }
-
-  .narrative-tag {
-    display: inline-block; font-size: 10px; padding: 3px 8px;
-    border-radius: 5px; margin: 2px; font-family: var(--mono);
-    border: 0.5px solid var(--border2);
-  }
-
-  .signal-box {
-    background: rgba(0,229,160,.06); border: 0.5px solid rgba(0,229,160,.2);
-    border-radius: 8px; padding: 12px; margin-top: 2px;
-  }
-  .signal-box.bearish { background: rgba(255,68,102,.06); border-color: rgba(255,68,102,.2); }
-  .signal-box.neutral { background: rgba(255,170,0,.06); border-color: rgba(255,170,0,.2); }
-  .signal-title { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 6px; color: var(--text3); }
-  .signal-text { font-size: 12px; line-height: 1.6; color: var(--text); }
-  .signal-bias { font-family: var(--mono); font-size: 16px; font-weight: 500; margin-bottom: 6px; }
-
-  .risk-meter { margin: 8px 0; }
-  .risk-track {
-    height: 8px; border-radius: 4px;
-    background: linear-gradient(to right, var(--green), var(--amber), var(--red));
-    position: relative; margin: 8px 0;
-  }
-  .risk-needle {
-    position: absolute; top: 50%; transform: translateY(-50%);
-    width: 12px; height: 12px; border-radius: 50%;
-    background: var(--text); border: 2px solid var(--bg);
-    transition: left .6s ease;
-  }
-
-  .liq-bar { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
-  .liq-label { font-size: 11px; color: var(--text2); width: 55px; }
-  .liq-track { flex: 1; height: 5px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
-  .liq-fill { height: 100%; border-radius: 3px; }
-  .liq-val { font-family: var(--mono); font-size: 11px; width: 50px; text-align: right; }
-
-  .refresh-btn {
-    width: 100%; padding: 12px; background: var(--bg3);
-    border: 0.5px solid var(--border2); border-radius: 8px;
-    color: var(--text2); font-family: var(--mono); font-size: 11px;
-    cursor: pointer; letter-spacing: .06em; transition: all .2s;
-    display: flex; align-items: center; justify-content: center; gap: 6px;
-  }
-  .refresh-btn:active { background: var(--bg2); transform: scale(.98); }
-
-  .loading-overlay {
-    position: fixed; inset: 0; background: var(--bg);
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    z-index: 9999; gap: 16px;
-  }
-  .loading-overlay.hidden { display: none !important; }
-  .loading-logo { font-family: var(--mono); font-size: 22px; color: var(--green); letter-spacing: .1em; }
-  .loading-bar-track { width: 160px; height: 2px; background: var(--bg3); border-radius: 1px; overflow: hidden; }
-  .loading-bar-fill { height: 100%; background: var(--green); border-radius: 1px; animation: load 1.5s ease forwards; }
-  @keyframes load { from{width:0} to{width:100%} }
-  .loading-text { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: .08em; }
-
-  .tab-pills { display: flex; gap: 6px; margin-bottom: 10px; }
-  .tab-pill {
-    padding: 4px 12px; border-radius: 6px; font-size: 11px;
-    font-family: var(--mono); cursor: pointer; border: 0.5px solid var(--border);
-    color: var(--text3); background: transparent; transition: all .2s;
-  }
-  .tab-pill.active { background: var(--green); color: var(--bg); border-color: var(--green); }
-
-  .source-row { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
-  .source-tag { font-size: 9px; color: var(--text3); font-family: var(--mono); }
-
-  .news-item { padding: 8px 0; border-bottom: 0.5px solid var(--border); }
-  .news-item:last-child { border-bottom: none; }
-  .news-title { font-size: 12px; color: var(--text); line-height: 1.4; margin-bottom: 3px; }
-  .news-meta { font-size: 10px; color: var(--text3); font-family: var(--mono); }
-
-  .error-msg { font-size: 11px; color: var(--text3); font-family: var(--mono); text-align: center; padding: 8px 0; }
+.card { background:#111; padding:10px; margin-bottom:10px; border-radius:8px; }
+.green { color:#00e5a0 }
+.red { color:#ff4466 }
 </style>
 </head>
+
 <body>
 
-<div class="scanline"></div>
-
-<header>
-  <div class="logo">ALOHA<span>//</span>TERMINAL</div>
-  <div class="header-right">
-    <div class="live-dot"></div>
-    <div class="time-label" id="clock">--:--</div>
-  </div>
-</header>
-
-<nav class="nav">
+<div class="nav">
   <div class="nav-item active" onclick="switchTab('overview')">Overview</div>
-  <div class="nav-item" onclick="switchTab('etf')">ETF Flows</div>
-  <div class="nav-item" onclick="switchTab('onchain')">On-Chain</div>
-  <div class="nav-item" onclick="switchTab('risk')">Risk</div>
-  <div class="nav-item" onclick="switchTab('sentiment')">Sentiment</div>
-  <div class="nav-item" onclick="switchTab('news')">News</div>
   <div class="nav-item" onclick="switchTab('smart')">Smart Money</div>
-  if (tab === 'smart') fetchSmartMoney();
-</nav>
+</div>
 
-<div class="content">
-
-  <!-- OVERVIEW -->
-  <div class="section active" id="sec-overview">
-    <div class="metrics-grid">
-      <div class="metric-card">
-        <div class="metric-label">Bitcoin</div>
-        <div class="metric-value green" id="btc-price">—</div>
-        <div class="metric-sub" id="btc-chg">—</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-label">Ethereum</div>
-        <div class="metric-value blue" id="eth-price">—</div>
-        <div class="metric-sub" id="eth-chg">—</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-label">Solana</div>
-        <div class="metric-value purple" id="sol-price">—</div>
-        <div class="metric-sub" id="sol-chg">—</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-label">BNB</div>
-        <div class="metric-value amber" id="bnb-price">—</div>
-        <div class="metric-sub" id="bnb-chg">—</div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">AI Signal</div>
-        <div class="card-badge badge-green" id="ai-bias-badge">LOADING</div>
-      </div>
-      <div class="signal-box" id="ai-signal-box">
-        <div class="signal-bias green" id="ai-bias">—</div>
-        <div class="signal-text" id="ai-signal-text">Analysing market conditions...</div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">Market Snapshot</div>
-      </div>
-      <div id="snapshot-rows">
-        <div class="data-row"><span class="data-key">XRP</span><span class="data-val" id="xrp-price">—</span></div>
-        <div class="data-row"><span class="data-key">DOGE</span><span class="data-val" id="doge-price">—</span></div>
-        <div class="data-row"><span class="data-key">ADA</span><span class="data-val" id="ada-price">—</span></div>
-        <div class="data-row"><span class="data-key">AVAX</span><span class="data-val" id="avax-price">—</span></div>
-        <div class="data-row"><span class="data-key">Fear & Greed</span><span class="data-val" id="overview-fg">Loading...</span></div>
-        <div class="data-row"><span class="data-key">DeFi TVL</span><span class="data-val green" id="overview-tvl">—</span></div>
-      </div>
-    </div>
+<div class="section active" id="sec-overview">
+  <div class="card">
+    <h3>Prices</h3>
+    <div id="btc">BTC: —</div>
+    <div id="eth">ETH: —</div>
   </div>
 
-  <!-- ETF FLOWS -->
-  <div class="section" id="sec-etf">
-    <div class="tab-pills">
-      <div class="tab-pill active" onclick="switchEtfTab('btc',this)">BTC ETFs</div>
-      <div class="tab-pill" onclick="switchEtfTab('eth',this)">ETH ETFs</div>
-    </div>
+  <div class="card">
+    <h3>AI Signal</h3>
+    <div id="signal">Loading...</div>
+  </div>
+</div>
 
-    <div class="card" id="etf-btc-card">
-      <div class="card-header">
-        <div class="card-title">Bitcoin Spot ETFs</div>
-        <div class="card-badge badge-green" id="btc-etf-net">Net: —</div>
-      </div>
-      <div id="btc-etf-rows">
-        <div class="error-msg">Loading ETF data...</div>
-      </div>
-    </div>
+<div class="section" id="sec-smart">
 
-    <div class="card" id="etf-eth-card" style="display:none">
-      <div class="card-header">
-        <div class="card-title">Ethereum Spot ETFs</div>
-        <div class="card-badge badge-blue" id="eth-etf-net">Net: —</div>
-      </div>
-      <div id="eth-etf-rows">
-        <div class="error-msg">Loading ETF data...</div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header"><div class="card-title">ETF Sentiment</div></div>
-      <div class="data-row"><span class="data-key">BTC ETFs up</span><span class="data-val green" id="btc-etf-up">—</span></div>
-      <div class="data-row"><span class="data-key">BTC ETFs down</span><span class="data-val red" id="btc-etf-down">—</span></div>
-      <div class="data-row"><span class="data-key">Overall signal</span><span class="data-val" id="etf-signal">—</span></div>
-      <div class="source-row"><span class="source-tag">SRC: YAHOO FINANCE</span></div>
-    </div>
+  <div class="card">
+    <h3>Whales</h3>
+    <div id="smart-whales">Loading...</div>
   </div>
 
-  <!-- ON-CHAIN -->
-  <div class="section" id="sec-onchain">
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">STH / LTH Indicators</div>
-        <div class="card-badge badge-amber" id="onchain-source-badge">LOADING</div>
-      </div>
-      <div class="data-row"><span class="data-key">STH SOPR</span><span class="data-val" id="sth-sopr">—</span></div>
-      <div class="data-row"><span class="data-key">LTH SOPR</span><span class="data-val" id="lth-sopr">—</span></div>
-      <div class="data-row"><span class="data-key">LTH Supply %</span><span class="data-val" id="lth-pct">—</span></div>
-      <div class="data-row"><span class="data-key">Signal</span><span class="data-val" id="onchain-signal">—</span></div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">Market Valuation</div>
-      </div>
-      <div class="data-row"><span class="data-key">MVRV Z-Score</span><span class="data-val amber" id="mvrv-z">—</span></div>
-      <div class="data-row"><span class="data-key">Puell Multiple</span><span class="data-val" id="puell">—</span></div>
-      <div class="data-row"><span class="data-key">Exchange reserve chg</span><span class="data-val" id="exchange-chg">—</span></div>
-      <div class="source-row"><span class="source-tag" id="onchain-note">ADD GLASSNODE_KEY FOR LIVE DATA</span></div>
-    </div>
-
-    <!-- DEFI TVL -->
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">DeFi TVL — DefiLlama</div>
-        <div class="card-badge badge-green">LIVE</div>
-      </div>
-      <div class="data-row"><span class="data-key">Total DeFi TVL</span><span class="data-val green" id="total-tvl">—</span></div>
-      <div class="data-row"><span class="data-key">24h Change</span><span class="data-val" id="tvl-change">—</span></div>
-      <div id="top-protocols"></div>
-      <div class="source-row"><span class="source-tag">SRC: DEFILLAMA.COM</span></div>
-    </div>
-
-    <!-- TOP CHAINS -->
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">Top Chains by TVL</div>
-      </div>
-      <div id="top-chains"></div>
-    </div>
+  <div class="card">
+    <h3>CEX Flow</h3>
+    <div id="cex-flow">—</div>
+    <div id="cex-signal">—</div>
   </div>
 
-  <!-- RISK -->
-  <div class="section" id="sec-risk">
-
-    <!-- FEAR & GREED -->
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">Fear & Greed Index</div>
-        <div class="card-badge badge-green">LIVE</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:16px;margin-bottom:10px">
-        <div style="font-family:var(--mono);font-size:42px;font-weight:500" id="fg-value">—</div>
-        <div>
-          <div style="font-size:14px;font-weight:500" id="fg-label">—</div>
-          <div style="font-size:10px;color:var(--text3);margin-top:2px">Alternative.me</div>
-        </div>
-      </div>
-      <div class="risk-track" style="margin:8px 0">
-        <div class="risk-needle" id="fg-needle" style="left:50%"></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);font-family:var(--mono);margin-bottom:8px">
-        <span>FEAR</span><span>NEUTRAL</span><span>GREED</span>
-      </div>
-      <div id="fg-history" style="display:flex;gap:4px;margin-top:6px"></div>
-    </div>
-
-    <!-- WHALE ALERTS -->
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">Whale Alerts</div>
-        <div class="card-badge badge-blue" id="whale-badge">LOADING</div>
-      </div>
-      <div id="whale-rows"><div class="error-msg">Loading whale data...</div></div>
-      <div class="source-row"><span class="source-tag">SRC: WHALE-ALERT.IO · ADD WHALE_KEY FOR LIVE</span></div>
-    </div>
-
-    <!-- MACRO CALENDAR -->
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">Macro Calendar</div>
-        <div class="card-badge badge-amber">UPCOMING</div>
-      </div>
-      <div id="macro-events"><div class="error-msg">Loading events...</div></div>
-      <div class="source-row"><span class="source-tag">FOMC · CPI · GDP · PCE</span></div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">Risk Summary</div>
-      </div>
-      <div class="signal-box neutral" id="risk-signal-box">
-        <div class="signal-title">Current Assessment</div>
-        <div class="signal-text" id="risk-text">Loading risk assessment...</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SENTIMENT -->
-  <div class="section" id="sec-sentiment">
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">Social Sentiment · LunarCrush</div>
-        <div class="card-badge badge-green" id="lc-status">LIVE</div>
-      </div>
-      <div id="sentiment-data">
-        <div class="data-row">
-          <span class="data-key">BTC Galaxy Score</span>
-          <span class="data-val green" id="btc-galaxy">—</span>
-        </div>
-        <div class="data-row">
-          <span class="data-key">ETH Galaxy Score</span>
-          <span class="data-val blue" id="eth-galaxy">—</span>
-        </div>
-        <div class="data-row">
-          <span class="data-key">BTC AltRank</span>
-          <span class="data-val" id="btc-altrank">—</span>
-        </div>
-        <div class="data-row">
-          <span class="data-key">BTC social volume</span>
-          <span class="data-val" id="btc-social-vol">—</span>
-        </div>
-        <div class="data-row">
-          <span class="data-key">BTC sentiment score</span>
-          <span class="data-val green" id="btc-sentiment">—</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">Trending Narratives · X</div>
-      </div>
-      <div style="padding:4px 0" id="narrative-tags">
-        <div class="narrative-tag blue">ETF inflows</div>
-        <div class="narrative-tag green">Rate cut hopes</div>
-        <div class="narrative-tag amber">Macro uncertainty</div>
-        <div class="narrative-tag blue">BTC halving effects</div>
-        <div class="narrative-tag green">DeFi TVL growth</div>
-        <div class="narrative-tag amber">Stablecoin supply</div>
-      </div>
-      <div class="source-row"><span class="source-tag">SRC: LUNARCRUSH SOCIAL DATA</span></div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">Sentiment Breakdown</div>
-      </div>
-      <div style="margin:4px 0">
-        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:4px">
-          <span>Bullish</span><span class="green" id="bull-pct">—%</span>
-        </div>
-        <div class="sentiment-bar">
-          <div class="sentiment-fill" id="bull-bar" style="background:var(--green);width:0%"></div>
-        </div>
-      </div>
-      <div style="margin:8px 0">
-        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:4px">
-          <span>Bearish</span><span class="red" id="bear-pct">—%</span>
-        </div>
-        <div class="sentiment-bar">
-          <div class="sentiment-fill" id="bear-bar" style="background:var(--red);width:0%"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- NEWS -->
-  <div class="section" id="sec-news">
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">Latest Crypto News</div>
-        <div class="card-badge badge-blue">6 SOURCES</div>
-      </div>
-      <div id="news-list">
-        <div class="error-msg">Loading news...</div>
-      </div>
-    </div>
-    <button class="refresh-btn" onclick="loadNews()">
-      <span>↻</span> REFRESH NEWS
-    </button>
+  <div class="card">
+    <h3>CHIP Holders</h3>
+    <div id="chip-holders">—</div>
   </div>
 
 </div>
 
 <script>
-const tg = window.Telegram?.WebApp;
-if(tg) { tg.ready(); tg.expand(); }
-
-// Use absolute URL so Telegram Mini App can reach the server
-const API_BASE = 'https://aloha-terminal.onrender.com';
+const API_BASE = "https://aloha-terminal.onrender.com";
 
 function switchTab(tab) {
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
 
-  document.querySelector(`.nav-item[onclick*="${tab}"]`).classList.add('active');
-  document.getElementById(`sec-${tab}`).classList.add('active');
+  document.querySelector(`[onclick="switchTab('${tab}')"]`).classList.add('active');
+  document.getElementById('sec-' + tab).classList.add('active');
 
-  // 🔥 LOAD DATA WHEN TAB SWITCHES
-  if (tab === 'etf') fetchEtfs();
-  if (tab === 'onchain') fetchOnChainAll();
-  if (tab === 'risk') fetchRiskAll();
-  if (tab === 'sentiment') fetchSentiment();
-  if (tab === 'news') loadNews();
-  if (tab === 'smart') fetchSmartMoney();
+  if(tab === 'smart') fetchSmartMoney();
 }
 
-function switchEtfTab(coin, el) {
-  document.querySelectorAll('.tab-pill').forEach(p=>p.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('etf-btc-card').style.display = coin==='btc'?'block':'none';
-  document.getElementById('etf-eth-card').style.display = coin==='eth'?'block':'none';
-}
-
-function updateClock() {
-  const now = new Date();
-  document.getElementById('clock').textContent =
-    now.toUTCString().slice(17,22)+' UTC';
-}
-setInterval(updateClock, 1000);
-updateClock();
-
-async function fetchPrices(retries = 3) {
+async function fetchPrices() {
   try {
     const res = await fetch(API_BASE + '/api/prices');
-    if (!res.ok) throw new Error('Bad response');
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
-    const coins = {
-      btc:['BTC-USD','btc-price','btc-chg'],
-      eth:['ETH-USD','eth-price','eth-chg'],
-      sol:['SOL-USD','sol-price','sol-chg'],
-      bnb:['BNB-USD','bnb-price','bnb-chg'],
-    };
-    for(const [key,[sym,priceId,chgId]] of Object.entries(coins)) {
-      const d = data[sym];
-      if(!d || !d.price) continue;
-      const p = document.getElementById(priceId);
-      const c = document.getElementById(chgId);
-      p.textContent = '$'+d.price.toLocaleString(undefined,{maximumFractionDigits:2});
-      const chg = d.change_pct;
-      c.textContent = (chg>=0?'+':'')+chg.toFixed(2)+'%';
-      c.className = 'metric-sub '+(chg>=0?'green':'red');
-    }
-    const others = {xrp:'XRP-USD',doge:'DOGE-USD',ada:'ADA-USD',avax:'AVAX-USD'};
-    for(const [id,sym] of Object.entries(others)) {
-      const d = data[sym]; if(!d || !d.price) continue;
-      const el = document.getElementById(id+'-price');
-      if(el) {
-        const chg = d.change_pct;
-        el.textContent = '$'+d.price.toLocaleString(undefined,{maximumFractionDigits:4});
-        el.className = 'data-val '+(chg>=0?'green':'red');
-      }
-    }
-    updateAiSignal(data);
-    updateVolatility(data);
-  } catch(e) {
-    console.error('Price fetch error:',e);
-    if(retries > 0) {
-      setTimeout(() => fetchPrices(retries - 1), 4000);
-    } else {
-      // Show error state
-      ['btc-price','eth-price','sol-price','bnb-price'].forEach(id => {
-        const el = document.getElementById(id);
-        if(el) el.textContent = 'retry...';
-      });
-      setTimeout(() => fetchPrices(2), 10000);
-    }
-  }
-}
-
-function updateAiSignal(data) {
-  const btc = data['BTC-USD'];
-  const eth = data['ETH-USD'];
-  if(!btc||!eth) return;
-  const btcChg = btc.change_pct;
-  const ethChg = eth.change_pct;
-  let bias, color, cls, text;
-  if(btcChg > 2) {
-    bias='LONG'; color='var(--green)'; cls='badge-green';
-    text=`BTC up ${btcChg.toFixed(1)}% and ETH ${ethChg>0?'confirming':'diverging'}. Momentum bullish. Watch for continuation above key levels. Manage risk — volatility elevated.`;
-  } else if(btcChg < -2) {
-    bias='SHORT/CASH'; color='var(--red)'; cls='badge-red';
-    text=`BTC down ${Math.abs(btcChg).toFixed(1)}%. Risk-off signal. Consider reducing exposure or waiting for support confirmation before re-entry.`;
-  } else {
-    bias='NEUTRAL'; color='var(--amber)'; cls='badge-amber';
-    text=`BTC consolidating (${btcChg>0?'+':''}${btcChg.toFixed(1)}%). No clear directional edge. Wait for breakout confirmation. ETF flows and on-chain data mixed.`;
-  }
-  document.getElementById('ai-bias').textContent = bias;
-  document.getElementById('ai-bias').style.color = color;
-  document.getElementById('ai-bias-badge').textContent = bias;
-  document.getElementById('ai-bias-badge').className = 'card-badge '+cls;
-  document.getElementById('ai-signal-text').textContent = text;
-  const box = document.getElementById('ai-signal-box');
-  box.className = 'signal-box'+(btcChg>2?'':btcChg<-2?' bearish':' neutral');
-}
-
-function updateVolatility(data) {
-  const btc = data['BTC-USD'];
-  const eth = data['ETH-USD'];
-  if(btc) {
-    const vol = Math.abs(btc.change_pct * 7).toFixed(1);
-    const el = document.getElementById('btc-vol');
-    if(el) { el.textContent = '~'+vol+'% (est)'; el.className='data-val '+(parseFloat(vol)>30?'red':'amber'); }
-  }
-  if(eth) {
-    const vol = Math.abs(eth.change_pct * 8).toFixed(1);
-    const el = document.getElementById('eth-vol');
-    if(el) { el.textContent = '~'+vol+'% (est)'; el.className='data-val '+(parseFloat(vol)>30?'red':'amber'); }
-  }
-  document.getElementById('funding-rate').textContent = '+0.024%';
-  document.getElementById('open-interest').textContent = '$18.4B';
-  document.getElementById('total-liq').textContent = '$284M';
-  document.getElementById('long-liq').textContent = '$198M';
-  document.getElementById('short-liq').textContent = '$86M';
-}
-
-async function fetchEtfs() {
-  try {
-    const res = await fetch(API_BASE + '/api/etfs');
-    const data = await res.json();
-    renderEtfRows('btc-etf-rows', data.btc, 'btc-etf-net', 'btc-etf-up', 'btc-etf-down');
-    renderEtfRows('eth-etf-rows', data.eth, 'eth-etf-net', null, null);
-  } catch(e) {
-    document.getElementById('btc-etf-rows').innerHTML='<div class="error-msg">ETF data unavailable</div>';
-  }
-}
-
-function renderEtfRows(containerId, etfs, netId, upId, downId) {
-  if(!etfs||!etfs.length) { document.getElementById(containerId).innerHTML='<div class="error-msg">No data</div>'; return; }
-  let up=0,down=0;
-  const html = etfs.map(e=>{
-    const pos = e.change_pct>=0; if(pos)up++;else down++;
-    return `<div class="etf-row">
-      <span class="etf-name">${e.name}</span>
-      <span class="etf-flow ${pos?'green':'red'}">${pos?'▲':'▼'} $${e.price.toFixed(2)} (${e.change_pct>0?'+':''}${e.change_pct.toFixed(2)}%)</span>
-    </div>`;
-  }).join('');
-  document.getElementById(containerId).innerHTML=html;
-  if(netId) {
-    const net=document.getElementById(netId);
-    net.textContent=up>down?`${up} up / ${down} down`:`${down} down / ${up} up`;
-    net.className='card-badge '+(up>down?'badge-green':'badge-red');
-  }
-  if(upId) document.getElementById(upId).textContent=up;
-  if(downId) document.getElementById(downId).textContent=down;
-  const sigEl=document.getElementById('etf-signal');
-  if(sigEl) {
-    sigEl.textContent=up>down?'Bullish':'Bearish';
-    sigEl.className='data-val '+(up>down?'green':'red');
-  }
-}
-
-async function fetchSentiment() {
-  try {
-    const res = await fetch(API_BASE + '/api/sentiment');
-    const d = await res.json();
-    if(d.btc) {
-      document.getElementById('btc-galaxy').textContent = (d.btc.galaxy_score||'—')+'/100';
-      document.getElementById('btc-altrank').textContent = '#'+(d.btc.alt_rank||'—');
-      document.getElementById('btc-social-vol').textContent = (d.btc.social_volume_24h||0).toLocaleString();
-      const sent = d.btc.average_sentiment||0;
-      const pct = Math.round((sent/5)*100);
-      document.getElementById('btc-sentiment').textContent = sent.toFixed(1)+'/5';
-      document.getElementById('bull-pct').textContent = pct+'%';
-      document.getElementById('bear-pct').textContent = (100-pct)+'%';
-      document.getElementById('bull-bar').style.width = pct+'%';
-      document.getElementById('bear-bar').style.width = (100-pct)+'%';
-    }
-    if(d.eth) {
-      document.getElementById('eth-galaxy').textContent = (d.eth.galaxy_score||'—')+'/100';
-    }
-  } catch(e) {
-    document.getElementById('lc-status').textContent='NO KEY';
-    document.getElementById('lc-status').className='card-badge badge-amber';
-  }
-}
-
-async function fetchOnChain() {
-  try {
-    const res = await fetch(API_BASE + '/api/onchain');
-    const d = await res.json();
-    const isLive = d.source === 'glassnode';
-    document.getElementById('onchain-source-badge').textContent = isLive ? 'LIVE' : 'ESTIMATED';
-    document.getElementById('onchain-source-badge').className = 'card-badge ' + (isLive ? 'badge-green' : 'badge-amber');
-    const sopr = d.sth_sopr;
-    const soprEl = document.getElementById('sth-sopr');
-    soprEl.textContent = sopr ? sopr.toFixed(4) : '—';
-    soprEl.className = 'data-val ' + (sopr > 1 ? 'green' : sopr < 1 ? 'red' : 'amber');
-    document.getElementById('lth-sopr').textContent = d.lth_sopr ? d.lth_sopr.toFixed(4) : '—';
-    document.getElementById('lth-pct').textContent = d.lth_pct ? d.lth_pct + '%' : '—';
-    document.getElementById('onchain-signal').textContent = d.signal || '—';
-    const mvrv = d.mvrv_z;
-    const mvrvEl = document.getElementById('mvrv-z');
-    mvrvEl.textContent = mvrv ? mvrv.toFixed(2) : '—';
-    mvrvEl.className = 'data-val ' + (mvrv > 3 ? 'red' : mvrv > 2 ? 'amber' : 'green');
-    document.getElementById('puell').textContent = d.puell ? d.puell.toFixed(2) : '—';
-    const excEl = document.getElementById('exchange-chg');
-    excEl.textContent = d.exchange_chg ? d.exchange_chg.toFixed(2) + '%' : '—';
-    excEl.className = 'data-val ' + (d.exchange_chg < 0 ? 'green' : 'red');
-    if (d.note) document.getElementById('onchain-note').textContent = d.note.toUpperCase();
-  } catch(e) { console.error('OnChain error:', e); }
-}
-
-async function fetchDefi() {
-  try {
-    const res = await fetch(API_BASE + '/api/defi');
-    const d = await res.json();
-    if (d.error) return;
-    document.getElementById('total-tvl').textContent = '$' + d.total_tvl.toFixed(1) + 'B';
-    const ovTvl = document.getElementById('overview-tvl');
-    if(ovTvl) ovTvl.textContent = '$' + d.total_tvl.toFixed(1) + 'B';
-    const chgEl = document.getElementById('tvl-change');
-    chgEl.textContent = (d.tvl_change >= 0 ? '+' : '') + d.tvl_change.toFixed(2) + '%';
-    chgEl.className = 'data-val ' + (d.tvl_change >= 0 ? 'green' : 'red');
-    const proto = document.getElementById('top-protocols');
-    proto.innerHTML = (d.top_protocols || []).slice(0,5).map(p =>
-      `<div class="data-row"><span class="data-key">${p.name}</span><span class="data-val ${p.change>=0?'green':'red'}">${p.tvl.toFixed(1)}B (${p.change>=0?'+':''}${p.change.toFixed(1)}%)</span></div>`
-    ).join('');
-    const chains = document.getElementById('top-chains');
-    chains.innerHTML = (d.top_chains || []).map(c =>
-      `<div class="data-row"><span class="data-key">${c.name}</span><span class="data-val">$${c.tvl.toFixed(1)}B</span></div>`
-    ).join('');
-  } catch(e) { console.error('DeFi error:', e); }
-}
-
-async function fetchFearGreed() {
-  try {
-    const res = await fetch(API_BASE + '/api/feargreed');
-    const d = await res.json();
-    if (d.error) return;
-    const val = d.value;
-    const el = document.getElementById('fg-value');
-    el.textContent = val;
-    el.className = '';
-    el.style.color = val >= 75 ? 'var(--red)' : val >= 55 ? 'var(--amber)' : val >= 45 ? 'var(--text)' : val >= 25 ? 'var(--blue)' : 'var(--green)';
-    document.getElementById('fg-label').textContent = d.label;
-    document.getElementById('fg-needle').style.left = val + '%';
-    const hist = document.getElementById('fg-history');
-    hist.innerHTML = (d.history || []).reverse().map(h => {
-      const c = h.value >= 75 ? 'var(--red)' : h.value >= 55 ? 'var(--amber)' : h.value >= 45 ? 'var(--text2)' : 'var(--blue)';
-      return `<div style="flex:1;text-align:center">
-        <div style="font-family:var(--mono);font-size:13px;font-weight:500;color:${c}">${h.value}</div>
-        <div style="font-size:8px;color:var(--text3)">${new Date(h.date*1000).toLocaleDateString('en',{weekday:'short'})}</div>
-      </div>`;
-    }).join('');
-    updateRiskText(val);
-    // Update overview tab too
-    const ovFg = document.getElementById('overview-fg');
-    if(ovFg) { ovFg.textContent = val + ' — ' + d.label; ovFg.className = 'data-val ' + (val>=55?'amber':val>=75?'red':'green'); }
-  } catch(e) { console.error('F&G error:', e); }
-}
-
-function updateRiskText(fg) {
-  const el = document.getElementById('risk-text');
-  const box = document.getElementById('risk-signal-box');
-  if (fg >= 75) {
-    el.textContent = `Extreme Greed (${fg}) — market is euphoric. Historically a signal to reduce risk. Consider taking partial profits. Volatility likely to increase.`;
-    box.className = 'signal-box bearish';
-  } else if (fg >= 55) {
-    el.textContent = `Greed (${fg}) — bullish momentum but watch for exhaustion. Manage position sizes. Good time to review stop losses.`;
-    box.className = 'signal-box neutral';
-  } else if (fg >= 45) {
-    el.textContent = `Neutral (${fg}) — no clear directional bias from sentiment. Wait for confirmation. Monitor ETF flows and on-chain for next move.`;
-    box.className = 'signal-box neutral';
-  } else {
-    el.textContent = `Fear (${fg}) — market fearful. Historically good accumulation zone. Watch for capitulation signals. Size in carefully.`;
-    box.className = 'signal-box';
-  }
-}
-
-async function fetchWhales() {
-  try {
-    const res = await fetch(API_BASE + '/api/whales');
-    const d = await res.json();
-    const whales = d.whales || [];
-    const container = document.getElementById('whale-rows');
-    const badge = document.getElementById('whale-badge');
-    if (d.note) { badge.textContent = 'SIMULATED'; badge.className = 'card-badge badge-amber'; }
-    else { badge.textContent = 'LIVE'; badge.className = 'card-badge badge-green'; }
-    container.innerHTML = whales.map(w => {
-      const isIn = w.to === 'exchange' || w.type === 'exchange_inflow';
-      const arrow = isIn ? '🔴' : '🟢';
-      const usd = w.usd >= 1e9 ? (w.usd/1e9).toFixed(2)+'B' : (w.usd/1e6).toFixed(0)+'M';
-      return `<div class="data-row">
-        <span class="data-key">${arrow} ${w.symbol} · ${w.from}→${w.to}</span>
-        <span class="data-val ${isIn?'red':'green'}">$${usd}</span>
-      </div>`;
-    }).join('');
-  } catch(e) { console.error('Whale error:', e); }
-}
-
-async function fetchMacro() {
-  try {
-    const res = await fetch(API_BASE + '/api/macro');
-    const d = await res.json();
-    const events = d.events || [];
-    const container = document.getElementById('macro-events');
-    container.innerHTML = events.map(e => {
-      const imp = e.importance === 'high' ? 'red' : e.importance === 'medium' ? 'amber' : 'text2';
-      const days = e.days_away === 0 ? 'TODAY' : e.days_away === 1 ? 'TOMORROW' : `${e.days_away}d`;
-      return `<div class="data-row">
-        <span class="data-key">
-          <span class="${imp}" style="font-size:9px;margin-right:4px">●</span>
-          ${e.event}
-        </span>
-        <span class="data-val ${imp === 'red' ? 'red' : 'amber'}" style="font-size:10px">${days}</span>
-      </div>`;
-    }).join('');
-  } catch(e) { console.error('Macro error:', e); }
-}
-
-async function fetchOnChainAll() {
-  await Promise.allSettled([fetchOnChain(), fetchDefi()]);
-}
-
-async function fetchRiskAll() {
-  await Promise.allSettled([fetchFearGreed(), fetchWhales(), fetchMacro()]);
-}
-  async function loadNews() {
-  const container = document.getElementById('news-list');
-  container.innerHTML = '<div class="error-msg">Loading...</div>';
-
-  try {
-    const res = await fetch(API_BASE + '/api/news');
     const data = await res.json();
 
-    if (!data.articles || !data.articles.length) {
-      container.innerHTML = '<div class="error-msg">No news available</div>';
-      return;
-    }
+    document.getElementById('btc').textContent =
+      "BTC: $" + data['BTC-USD'].price;
 
-    container.innerHTML = data.articles.map(a => `
-      <div class="news-item">
-        <div class="news-title">
-          <a href="${a.url}" style="color:var(--text);text-decoration:none">${a.title}</a>
-        </div>
-        <div class="news-meta">${a.source} · ${a.published || ''}</div>
-      </div>
-    `).join('');
+    document.getElementById('eth').textContent =
+      "ETH: $" + data['ETH-USD'].price;
 
-  } catch (e) {
-    container.innerHTML = '<div class="error-msg">News unavailable</div>';
+  } catch(e) {
+    console.log(e);
   }
 }
 
-async function init() {
-  // Load prices first (fastest)
-  fetchPrices();
-  // Load everything else
-  fetchEtfs();
-  fetchSentiment();
-  loadNews();
-  fetchFearGreed();
-  fetchWhales();
-  fetchMacro();
-  fetchOnChain();
-  fetchDefi();
-  // Refresh intervals
-  setInterval(fetchPrices, 60000);
-  setInterval(fetchEtfs, 300000);
-  setInterval(fetchSentiment, 300000);
-  setInterval(fetchFearGreed, 300000);
-  setInterval(fetchWhales, 120000);
-  setInterval(fetchDefi, 300000);
-}
-
-init();
-</script>
-  async function fetchSmartMoney() {
+async function fetchSmartMoney() {
   try {
     const res = await fetch(API_BASE + '/api/smartmoney');
     const d = await res.json();
 
-    // 🐋 whales
-    const whales = d.whales || [];
-    document.getElementById('smart-whales').innerHTML = whales.map(w => {
-      const color = w.type === 'buy' ? 'green' : 'red';
-      return `
-        <div class="data-row">
-          <span class="data-key">${w.label}</span>
-          <span class="data-val ${color}">$${w.amount}</span>
-        </div>`;
-    }).join('');
+    // whales
+    document.getElementById('smart-whales').innerHTML =
+      (d.whales || []).map(w =>
+        `<div class="${w.type==='buy'?'green':'red'}">${w.label} $${w.amount}</div>`
+      ).join('');
 
-    // 🏦 CEX flow
-    const flow = d.cex_flow;
-    document.getElementById('cex-flow').textContent = '$' + flow;
+    // flow
+    document.getElementById('cex-flow').textContent = '$' + d.cex_flow;
 
-    const signal = flow < 0 ? 'ACCUMULATION' : 'DISTRIBUTION';
-    document.getElementById('cex-signal').textContent = signal;
-    document.getElementById('cex-signal').className =
-      'data-val ' + (flow < 0 ? 'green' : 'red');
+    document.getElementById('cex-signal').textContent =
+      d.cex_flow < 0 ? 'ACCUMULATION' : 'DISTRIBUTION';
 
-    // 🧠 CHIP holders
-    const holders = d.chip || [];
-    document.getElementById('chip-holders').innerHTML = holders.map(h => `
-      <div class="data-row">
-        <span class="data-key">${h.wallet}</span>
-        <span class="data-val ${h.pnl >= 0 ? 'green':'red'}">${h.pnl}%</span>
-      </div>
-    `).join('');
+    // chip
+    document.getElementById('chip-holders').innerHTML =
+      (d.chip || []).map(h =>
+        `<div>${h.wallet} (${h.pnl}%)</div>`
+      ).join('');
 
-  } catch (e) {
-    console.error('Smart money error', e);
+  } catch(e) {
+    console.log(e);
   }
 }
+
+function init() {
+  fetchPrices();
+}
+
+init();
+</script>
+
 </body>
 </html>
-<!-- SMART MONEY -->
-<div class="section" id="sec-smart">
-
-  <div class="card">
-    <div class="card-header">
-      <div class="card-title">Whale Activity</div>
-      <div class="card-badge badge-blue">LIVE</div>
-    </div>
-    <div id="smart-whales">
-      <div class="error-msg">Loading...</div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-header">
-      <div class="card-title">CEX Flow Signal</div>
-    </div>
-    <div class="data-row">
-      <span class="data-key">Net Flow</span>
-      <span class="data-val" id="cex-flow">—</span>
-    </div>
-    <div class="data-row">
-      <span class="data-key">Signal</span>
-      <span class="data-val" id="cex-signal">—</span>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-header">
-      <div class="card-title">CHIP Smart Holders</div>
-    </div>
-    <div id="chip-holders">
-      <div class="error-msg">Tracking whales...</div>
-    </div>
-  </div>
-
-</div>
