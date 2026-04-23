@@ -1,56 +1,67 @@
 import os
 import requests
-from flask import Flask, jsonify, send_file
-from flask_cors import CORS
+from flask import Flask, jsonify, send_from_directory
 
-app = Flask(__name__)
-CORS(app)
+app = Flask(__name__, static_folder='.')
 
 # =========================
-# CONFIG
+# ROUTES
 # =========================
-BINANCE = "https://api.binance.com/api/v3/ticker/24hr"
 
-# =========================
-# SERVE FRONTEND
-# =========================
-@app.route("/")
+@app.route('/')
 def home():
-    return send_file("index.html")
+    return send_from_directory('.', 'index.html')
+
+@app.route('/dashboard')
+def dashboard():
+    return send_from_directory('.', 'index.html')
+
 
 # =========================
-# PRICES API
+# API: PRICES
 # =========================
-@app.route("/api/prices")
+@app.route('/api/prices')
 def prices():
     try:
-        r = requests.get(BINANCE, timeout=5)
+        r = requests.get("https://api.binance.com/api/v3/ticker/price")
         data = r.json()
 
-        ticker = {t["symbol"]: t for t in data}
+        result = {}
+        for x in data:
+            if x['symbol'] == 'BTCUSDT':
+                result['BTC-USD'] = {'price': round(float(x['price']), 2)}
+            if x['symbol'] == 'ETHUSDT':
+                result['ETH-USD'] = {'price': round(float(x['price']), 2)}
 
-        return jsonify({
-            "BTC": float(ticker["BTCUSDT"]["lastPrice"]),
-            "ETH": float(ticker["ETHUSDT"]["lastPrice"])
-        })
-    except:
-        return jsonify({
-            "BTC": 0,
-            "ETH": 0
-        })
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
 
 # =========================
-# SMART MONEY (MOCK DATA)
+# API: SIGNAL
 # =========================
-@app.route("/api/smartmoney")
+@app.route('/api/signal')
+def signal():
+    return jsonify({
+        "status": "NEUTRAL",
+        "message": "BTC stable, no clear edge."
+    })
+
+
+# =========================
+# API: SMART MONEY
+# =========================
+@app.route('/api/smartmoney')
 def smartmoney():
     return jsonify({
-        "cex_flow": -1250000,  # negative = accumulation
         "whales": [
-            {"type": "buy", "label": "Binance Cold Wallet", "amount": 520000},
-            {"type": "buy", "label": "Smart Wallet 0xA1", "amount": 180000},
-            {"type": "sell", "label": "Whale Exit 0xF9", "amount": 90000}
+            {"label": "Binance Cold Wallet", "amount": 520000, "type": "buy"},
+            {"label": "Smart Wallet 0xA1", "amount": 180000, "type": "buy"},
+            {"label": "Whale Exit 0xF9", "amount": 90000, "type": "sell"}
         ],
+        "cex_flow": -1250000,
         "chip": [
             {"wallet": "0x8f3...a21", "pnl": 245},
             {"wallet": "0x4ab...992", "pnl": 118},
@@ -58,12 +69,6 @@ def smartmoney():
         ]
     })
 
-# =========================
-# HEALTH CHECK
-# =========================
-@app.route("/ping")
-def ping():
-    return jsonify({"status": "alive"})
 
 # =========================
 # RUN
