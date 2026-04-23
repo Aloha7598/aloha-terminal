@@ -401,35 +401,42 @@ def compute_signal():
     score = 0
     details = []
 
-    # BTC momentum
+    # BTC momentum (more sensitive)
     try:
         r = requests.get("https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT", timeout=5)
         btc = float(r.json().get("priceChangePercent", 0))
-        if btc > 1:
+
+        if btc > 0.5:
             score += 1
-            details.append("BTC bullish momentum")
-        elif btc < -1:
-            details.append("BTC bearish")
+            details.append(f"BTC momentum +{btc:.2f}%")
+        elif btc < -0.5:
+            details.append(f"BTC weak {btc:.2f}%")
     except:
         btc = 0
 
-    # Fear & Greed
+    # Fear & Greed (better ranges)
     try:
         fg = requests.get("https://api.alternative.me/fng/?limit=1", timeout=5).json()
         fg_val = int(fg["data"][0]["value"])
-        if fg_val < 40:
+
+        if fg_val < 45:
             score += 1
-            details.append("Market fear (good entry)")
+            details.append(f"Fear zone ({fg_val})")
         elif fg_val > 70:
-            details.append("Market overheated")
+            details.append(f"Overbought ({fg_val})")
+        else:
+            details.append(f"Neutral sentiment ({fg_val})")
     except:
         fg_val = 50
 
-    # Final signal
+    # Always show something
+    details.append("Monitoring market conditions")
+
+    # Final decision
     if score >= 2:
-        status = "BUY ZONE"
+        status = "BUY"
     elif score == 1:
-        status = "NEUTRAL"
+        status = "WATCH"
     else:
         status = "RISK"
 
