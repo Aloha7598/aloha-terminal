@@ -394,7 +394,50 @@ setTimeout(function(){ location.reload(); }, 60000);
 </body>
 </html>"""
     return html
+# ─────────────────────────────────────────────
+#  AI SIGNAL ENGINE (NEW)
+# ─────────────────────────────────────────────
+def compute_signal():
+    score = 0
+    details = []
 
+    # BTC momentum
+    try:
+        r = requests.get("https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT", timeout=5)
+        btc = float(r.json().get("priceChangePercent", 0))
+        if btc > 1:
+            score += 1
+            details.append("BTC bullish momentum")
+        elif btc < -1:
+            details.append("BTC bearish")
+    except:
+        btc = 0
+
+    # Fear & Greed
+    try:
+        fg = requests.get("https://api.alternative.me/fng/?limit=1", timeout=5).json()
+        fg_val = int(fg["data"][0]["value"])
+        if fg_val < 40:
+            score += 1
+            details.append("Market fear (good entry)")
+        elif fg_val > 70:
+            details.append("Market overheated")
+    except:
+        fg_val = 50
+
+    # Final signal
+    if score >= 2:
+        status = "BUY ZONE"
+    elif score == 1:
+        status = "NEUTRAL"
+    else:
+        status = "RISK"
+
+    return {
+        "score": score,
+        "status": status,
+        "details": details
+    }
 # ─────────────────────────────────────────────
 #  CRYPTO PRICES — Binance
 # ─────────────────────────────────────────────
@@ -408,7 +451,10 @@ BINANCE_SYMBOLS = {
     "ADA-USD":  "ADAUSDT",
     "AVAX-USD": "AVAXUSDT",
 }
-
+@app.route("/api/signal")
+def api_signal():
+    return jsonify(compute_signal())
+    
 @app.route("/api/prices")
 def api_prices():
     try:
