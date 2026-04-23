@@ -1,16 +1,24 @@
-import os
-import re
 import json
-import math
-import random
+import os
+import threading
+import time
 from datetime import datetime, timezone
 
 import requests
-from flask import Flask, jsonify, send_from_directory, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 
-app = Flask(__name__, static_folder='.')
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+app = Flask(__name__, static_folder=".")
+
+
+def _parse_cors_origins():
+    raw = os.environ.get("CORS_ORIGINS", "*").strip()
+    if raw == "*" or not raw:
+        return "*"
+    return [origin.strip() for origin in raw.split(",") if origin.strip()]
+
+
+CORS(app, resources={r"/api/*": {"origins": _parse_cors_origins()}})
 
 # =========================================================
 # SIMPLE LOCAL DATA
@@ -26,7 +34,7 @@ COIN_CATALOG = [
         "change24h": 1.74,
         "liquidity": 1250000000,
         "volume24h": 28900000000,
-        "marketCap": 1350000000000
+        "marketCap": 1350000000000,
     },
     {
         "id": "ethereum-eth",
@@ -37,7 +45,7 @@ COIN_CATALOG = [
         "change24h": 2.08,
         "liquidity": 820000000,
         "volume24h": 15800000000,
-        "marketCap": 422000000000
+        "marketCap": 422000000000,
     },
     {
         "id": "solana-sol",
@@ -48,7 +56,7 @@ COIN_CATALOG = [
         "change24h": 4.12,
         "liquidity": 390000000,
         "volume24h": 4900000000,
-        "marketCap": 79000000000
+        "marketCap": 79000000000,
     },
     {
         "id": "pepe-eth",
@@ -59,7 +67,7 @@ COIN_CATALOG = [
         "change24h": 7.84,
         "liquidity": 3200000,
         "volume24h": 9800000,
-        "marketCap": 5800000000
+        "marketCap": 5800000000,
     },
     {
         "id": "wif-sol",
@@ -70,37 +78,64 @@ COIN_CATALOG = [
         "change24h": -1.88,
         "liquidity": 1900000,
         "volume24h": 6100000,
-        "marketCap": 2200000000
-    }
+        "marketCap": 2200000000,
+    },
 ]
 
 WATCHLIST_STORE = "watchlist.json"
+WATCHLIST_LOCK = threading.Lock()
+
+# Small in-memory API cache to reduce external calls/cost.
+API_CACHE = {}
+CACHE_LOCK = threading.Lock()
 
 
 # =========================================================
 # HELPERS
 # =========================================================
 
+def now_iso():
+    return datetime.now(timezone.utc).isoformat()
+
+
+def cache_get(key):
+    with CACHE_LOCK:
+        entry = API_CACHE.get(key)
+        if not entry:
+            return None
+        if time.time() > entry["expires_at"]:
+            API_CACHE.pop(key, None)
+            return None
+        return entry["value"]
+
+
+def cache_set(key, value, ttl_seconds):
+    with CACHE_LOCK:
+        API_CACHE[key] = {
+            "value": value,
+            "expires_at": time.time() + ttl_seconds,
+        }
+
+
 def load_watchlist():
-    if os.path.exists(WATCHLIST_STORE):
-        try:
-            with open(WATCHLIST_STORE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            return []
-    return []
+    with WATCHLIST_LOCK:
+        if os.path.exists(WATCHLIST_STORE):
+            try:
+                with open(WATCHLIST_STORE, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    return data if isinstance(data, list) else []
+            except Exception:
+                return []
+        return []
 
 
 def save_watchlist(items):
-    try:
-        with open(WATCHLIST_STORE, "w", encoding="utf-8") as f:
-            json.dump(items, f, indent=2)
-    except Exception:
-        pass
-
-
-def now_iso():
-    return datetime.now(timezone.utc).isoformat()
+    with WATCHLIST_LOCK:
+        try:
+            with open(WATCHLIST_STORE, "w", encoding="utf-8") as f:
+                json.dump(items, f, indent=2)
+        except Exception:
+            pass
 
 
 def find_coin(query_text):
@@ -108,23 +143,14 @@ def find_coin(query_text):
     if not q:
         return None
 
-    exact_symbol = None
-    exact_name = None
-
     for coin in COIN_CATALOG:
         if coin["symbol"].lower() == q:
-            exact_symbol = coin
-            break
-
-    if exact_symbol:
-        return exact_symbol
+            return coin
 
     for coin in COIN_CATALOG:
         if q in coin["name"].lower() or q in coin["symbol"].lower() or q in coin["id"].lower():
-            exact_name = coin
-            break
-
-    return exact_name
+            return coin
+    return None
 
 
 def status_from_score(score):
@@ -145,7 +171,7 @@ def build_summary(coin):
     supply = "Rising" if change > 0 else "Falling"
     mint_burn = "Positive" if change > 1 else "Negative"
     smart_money = "Not back" if change < 3 else "Returning"
-    exchange_flow = "Outflow to CEX" if change > 0 else "Inflow to CEX"
+    exchange_flow = "Outflow from CEX" if change > 0 else "Inflow to CEX"
 
     score = 0
     if change > 0:
@@ -159,13 +185,14 @@ def build_summary(coin):
     if change > 6:
         score += 1
 
+    final_score = min(score, 5)
     return {
         "supply": supply,
         "mintBurn": mint_burn,
         "smartMoney": smart_money,
         "exchangeFlow": exchange_flow,
-        "score": min(score, 5),
-        "status": status_from_score(min(score, 5))
+        "score": final_score,
+        "status": status_from_score(final_score),
     }
 
 
@@ -176,7 +203,7 @@ def build_onchain(coin):
     supply = "Falling" if change < 0 else "Rising"
     mint_burn = "Negative" if change < 1 else "Positive"
     smart_money = "Not back" if change < 2 else "Returning"
-    exchange_flow = "Inflow (risk)" if change < 0 else "Outflow (bullish)"
+    exchange_flow = "Inflow to CEX (risk)" if change < 0 else "Outflow from CEX (bullish)"
 
     score = 0
     if change > 0:
@@ -194,7 +221,7 @@ def build_onchain(coin):
         "smartMoney": smart_money,
         "exchangeFlow": exchange_flow,
         "score": min(score, 5),
-        "status": "AVOID" if score <= 1 else "WAIT" if score == 2 else "ACCUMULATION"
+        "status": "AVOID" if score <= 1 else "WAIT" if score == 2 else "ACCUMULATION",
     }
 
 
@@ -206,20 +233,20 @@ def build_early_signal(coin):
     bullets = [
         "Supply +6% (3d)",
         "Whale buys detected",
-        "No exchange inflow"
+        "No exchange inflow",
     ]
 
     if change < 0:
         bullets = [
             "Supply weak",
             "No whale confirmation",
-            "Exchange inflow risk"
+            "Exchange inflow risk",
         ]
 
     return {
         "detected": detected,
         "bullets": bullets,
-        "status": "EARLY ACCUMULATION" if detected else "NO EARLY SIGNAL"
+        "status": "EARLY ACCUMULATION" if detected else "NO EARLY SIGNAL",
     }
 
 
@@ -230,7 +257,7 @@ def build_holders(coin):
         {"label": "Treasury / Multisig", "count": 4},
         {"label": "Exchange Wallets", "count": 2},
         {"label": "Passive Whales", "count": 9},
-        {"label": "Active Wallets", "count": 5}
+        {"label": "Active Wallets", "count": 5},
     ]
 
     new_buyers = {
@@ -239,8 +266,10 @@ def build_holders(coin):
         "entries": [
             {"wallet": "0x31...af9", "usd": 54000, "time": "28m ago"},
             {"wallet": "0x88...c12", "usd": 104000, "time": "51m ago"},
-            {"wallet": "0x19...d0a", "usd": 67000, "time": "74m ago"}
-        ] if change > 1 else []
+            {"wallet": "0x19...d0a", "usd": 67000, "time": "74m ago"},
+        ]
+        if change > 1
+        else [],
     }
 
     smart_money_returns = {
@@ -249,29 +278,31 @@ def build_holders(coin):
         "bullets": [
             "Mixed / passive holders",
             "Some exchange deposits",
-            "No clustered large re-buys"
-        ] if change <= 3 else [
+            "No clustered large re-buys",
+        ]
+        if change <= 3
+        else [
             "Multiple new wallets / large buys clustered in time",
             "Previous sold wallet start accumulating",
-            "Average buy size increasing"
-        ]
+            "Average buy size increasing",
+        ],
     }
 
     avg_buy_size = {
         "trend": "Increasing" if change > 2 else "Stable",
         "changePct": 38 if change > 2 else 8,
-        "note": "Transactions getting bigger" if change > 2 else "No major change"
+        "note": "Transactions getting bigger" if change > 2 else "No major change",
     }
 
     sell_pressure = {
         "trend": "Improving" if change > 0 else "Weak",
         "changePct": -42 if change > 0 else 18,
-        "note": "Fewer large red transactions · no big dumps" if change > 0 else "Sell pressure still active"
+        "note": "Fewer large red transactions · no big dumps" if change > 0 else "Sell pressure still active",
     }
 
     exchange_flow = {
         "trend": "Bullish" if change > 0 else "Risk",
-        "note": "Exchange outflows > inflows" if change > 0 else "Tokens entering exchanges"
+        "note": "Exchange outflows > inflows" if change > 0 else "Tokens entering exchanges",
     }
 
     return {
@@ -280,7 +311,7 @@ def build_holders(coin):
         "smartMoneyReturns": smart_money_returns,
         "avgBuySize": avg_buy_size,
         "sellPressure": sell_pressure,
-        "exchangeFlow": exchange_flow
+        "exchangeFlow": exchange_flow,
     }
 
 
@@ -293,7 +324,7 @@ def build_coin_detail(coin):
     context = [
         "BTC trending up → bullish bias",
         "ETH lagging → weak confirmation",
-        "No smart money inflow → low conviction"
+        "No smart money inflow → low conviction",
     ]
 
     return {
@@ -302,8 +333,45 @@ def build_coin_detail(coin):
         "onchain": onchain,
         "earlySignal": early,
         "holders": holders,
-        "context": context
+        "context": context,
     }
+
+
+def _sanitize_text(value, max_len=64):
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    return text[:max_len]
+
+
+def _coerce_number(value, default=0):
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _validate_watchlist_payload(payload):
+    coin_id = _sanitize_text(payload.get("id"), 100)
+    if not coin_id:
+        return None, "Missing id"
+
+    cleaned = {
+        "id": coin_id,
+        "symbol": _sanitize_text(payload.get("symbol"), 24),
+        "name": _sanitize_text(payload.get("name"), 64),
+        "chain": _sanitize_text(payload.get("chain"), 32),
+        "price": _coerce_number(payload.get("price"), 0),
+        "change24h": _coerce_number(payload.get("change24h"), 0),
+        "status": _sanitize_text(payload.get("status"), 24) or "WAIT",
+        "score": int(_coerce_number(payload.get("score"), 0)),
+        "early": bool(payload.get("early", False)),
+        "updatedAt": now_iso(),
+    }
+    cleaned["score"] = max(0, min(cleaned["score"], 5))
+    return cleaned, None
 
 
 # =========================================================
@@ -322,33 +390,48 @@ def dashboard():
 
 @app.route("/api/prices")
 def prices():
+    cache_key = "prices"
+    cached = cache_get(cache_key)
+    if cached:
+        return jsonify(cached)
+
     try:
-        r = requests.get("https://api.binance.com/api/v3/ticker/price", timeout=10)
-        data = r.json()
+        # Use symbol-specific endpoints instead of full ticker list.
+        btc_res = requests.get(
+            "https://api.binance.com/api/v3/ticker/price",
+            params={"symbol": "BTCUSDT"},
+            timeout=8,
+        )
+        eth_res = requests.get(
+            "https://api.binance.com/api/v3/ticker/price",
+            params={"symbol": "ETHUSDT"},
+            timeout=8,
+        )
+        btc_data = btc_res.json()
+        eth_data = eth_res.json()
 
-        result = {}
-        for x in data:
-            if x.get("symbol") == "BTCUSDT":
-                result["BTC-USD"] = {"price": round(float(x["price"]), 2)}
-            elif x.get("symbol") == "ETHUSDT":
-                result["ETH-USD"] = {"price": round(float(x["price"]), 2)}
-
-        if "BTC-USD" not in result:
-            result["BTC-USD"] = {"price": 68420.12}
-        if "ETH-USD" not in result:
-            result["ETH-USD"] = {"price": 3520.44}
-
+        result = {
+            "BTC-USD": {"price": round(float(btc_data.get("price", 68420.12)), 2)},
+            "ETH-USD": {"price": round(float(eth_data.get("price", 3520.44)), 2)},
+        }
+        cache_set(cache_key, result, ttl_seconds=20)
         return jsonify(result)
     except Exception as e:
-        return jsonify({
+        fallback = {
             "BTC-USD": {"price": 68420.12},
             "ETH-USD": {"price": 3520.44},
-            "error": str(e)
-        })
+            "error": str(e),
+        }
+        cache_set(cache_key, fallback, ttl_seconds=10)
+        return jsonify(fallback)
 
 
 @app.route("/api/signal")
 def signal():
+    cached = cache_get("signal")
+    if cached:
+        return jsonify(cached)
+
     btc_change = -0.9
     fear_greed = 46
 
@@ -377,19 +460,21 @@ def signal():
     else:
         status = "WAIT"
 
-    return jsonify({
-        "status": status,
-        "details": details,
-        "score": score
-    })
+    payload = {"status": status, "details": details, "score": score}
+    cache_set("signal", payload, ttl_seconds=30)
+    return jsonify(payload)
 
 
 @app.route("/api/smartmoney")
 def smartmoney():
+    cached = cache_get("smartmoney")
+    if cached:
+        return jsonify(cached)
+
     whales = [
         {"label": "Binance Cold Wallet", "amount": 520000, "type": "buy"},
         {"label": "Smart Wallet 0xA1", "amount": 180000, "type": "buy"},
-        {"label": "Whale Exit 0xF9", "amount": 90000, "type": "sell"}
+        {"label": "Whale Exit 0xF9", "amount": 90000, "type": "sell"},
     ]
 
     cex_flow = -1250000
@@ -397,25 +482,26 @@ def smartmoney():
     chip = [
         {"wallet": "0x8f3...a21", "pnl": 245},
         {"wallet": "0x4ab...992", "pnl": 118},
-        {"wallet": "0x91c...77d", "pnl": 76}
+        {"wallet": "0x91c...77d", "pnl": 76},
     ]
 
     holder_groups = [
         {"label": "Treasury / Multisig", "count": 4, "color": "blue"},
         {"label": "Exchange Wallets", "count": 2, "color": "red"},
         {"label": "Passive Whales", "count": 9, "color": "yellow"},
-        {"label": "Active Wallets", "count": 5, "color": "green"}
+        {"label": "Active Wallets", "count": 5, "color": "green"},
     ]
 
-    signal = "ACCUMULATION" if cex_flow < 0 else "DISTRIBUTION"
-
-    return jsonify({
+    signal_value = "ACCUMULATION" if cex_flow < 0 else "DISTRIBUTION"
+    payload = {
         "whales": whales,
         "cex_flow": cex_flow,
-        "cex_signal": signal,
+        "cex_signal": signal_value,
         "chip": chip,
-        "holder_groups": holder_groups
-    })
+        "holder_groups": holder_groups,
+    }
+    cache_set("smartmoney", payload, ttl_seconds=30)
+    return jsonify(payload)
 
 
 @app.route("/api/search")
@@ -462,34 +548,23 @@ def watchlist():
     if request.method == "GET":
         return jsonify({"watchlist": items})
 
-    if request.method == "POST":
-        payload = request.get_json(silent=True) or {}
-        coin_id = payload.get("id")
-        if not coin_id:
-            return jsonify({"error": "Missing id"}), 400
+    payload = request.get_json(silent=True) or {}
+    clean_payload, err = _validate_watchlist_payload(payload)
 
-        existing = next((x for x in items if x.get("id") == coin_id), None)
+    if request.method == "POST":
+        if err:
+            return jsonify({"error": err}), 400
+
+        existing = next((x for x in items if x.get("id") == clean_payload["id"]), None)
         if existing:
             return jsonify({"ok": True, "message": "Already in watchlist", "watchlist": items})
 
-        items.insert(0, {
-            "id": coin_id,
-            "symbol": payload.get("symbol"),
-            "name": payload.get("name"),
-            "chain": payload.get("chain"),
-            "price": payload.get("price"),
-            "change24h": payload.get("change24h"),
-            "status": payload.get("status", "WAIT"),
-            "score": payload.get("score", 0),
-            "early": payload.get("early", False),
-            "updatedAt": now_iso()
-        })
+        items.insert(0, clean_payload)
         save_watchlist(items)
         return jsonify({"ok": True, "watchlist": items})
 
     if request.method == "DELETE":
-        payload = request.get_json(silent=True) or {}
-        coin_id = payload.get("id")
+        coin_id = _sanitize_text(payload.get("id"), 100)
         if not coin_id:
             return jsonify({"error": "Missing id"}), 400
 
@@ -510,12 +585,12 @@ def ping():
 # =========================================================
 
 @app.errorhandler(404)
-def not_found(e):
+def not_found(_e):
     return jsonify({"error": "Not found"}), 404
 
 
 @app.errorhandler(500)
-def server_error(e):
+def server_error(_e):
     return jsonify({"error": "Internal server error"}), 500
 
 
@@ -525,4 +600,5 @@ def server_error(e):
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    debug_mode = os.environ.get("FLASK_DEBUG", "0") == "1"
+    app.run(host="0.0.0.0", port=port, debug=debug_mode)
