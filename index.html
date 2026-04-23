@@ -1,116 +1,89 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Aloha Terminal</title>
 
 <style>
 body {
-  background:#07090f;
-  color:white;
+  background:#0b0f1a;
+  color:#e6edf3;
   font-family:Arial;
-  margin:0;
-}
-
-.header {
-  padding:16px;
-  font-size:22px;
-  font-weight:bold;
 }
 
 .nav {
   display:flex;
   gap:20px;
-  padding:0 16px 10px;
-  border-bottom:1px solid #111;
+  padding:15px;
 }
 
 .nav-item {
   cursor:pointer;
-  opacity:.5;
+  color:#6b7280;
 }
 
 .nav-item.active {
-  opacity:1;
   color:#00ffa3;
 }
 
-.section {
-  display:none;
-  padding:16px;
-}
-
-.section.active {
-  display:block;
-}
+.section { display:none; }
+.section.active { display:block; }
 
 .card {
-  background:#0f121a;
-  border:1px solid #1c1f2a;
-  padding:14px;
-  margin-bottom:14px;
+  background:#111827;
+  padding:15px;
+  margin:10px;
   border-radius:10px;
 }
 
+.green { color:#00ffa3 }
+.red { color:#ff4d6d }
+
 .title {
   font-size:14px;
-  opacity:.7;
-  margin-bottom:6px;
+  color:#9ca3af;
+  margin-bottom:8px;
 }
 
 .value {
   font-size:18px;
 }
-
-.green { color:#00ffa3 }
-.red { color:#ff4d6d }
-.yellow { color:#ffaa00 }
-
-.signal {
-  padding:12px;
-  border-radius:8px;
-  margin-top:10px;
-}
-
-.signal.neutral { background:#2a210f; color:#ffaa00 }
-.signal.bull { background:#0f2a1f; color:#00ffa3 }
-.signal.bear { background:#2a0f14; color:#ff4d6d }
-
 </style>
+
 </head>
 
 <body>
 
-<div class="header">ALOHA / TERMINAL</div>
+<h2 style="padding:10px;">ALOHA / TERMINAL</h2>
 
 <div class="nav">
-  <div class="nav-item active" onclick="switchTab('overview', this)">Overview</div>
-  <div class="nav-item" onclick="switchTab('smart', this)">Smart Money</div>
+  <div class="nav-item active" onclick="switchTab('overview')">Overview</div>
+  <div class="nav-item" onclick="switchTab('smart')">Smart Money</div>
 </div>
 
-<!-- OVERVIEW -->
-<div class="section active" id="sec-overview">
+<!-- ================= OVERVIEW ================= -->
+<div id="overview" class="section active">
 
   <div class="card">
-    <div class="title">BTC</div>
-    <div id="btc" class="value">—</div>
-  </div>
-
-  <div class="card">
-    <div class="title">ETH</div>
-    <div id="eth" class="value">—</div>
+    <div class="title">PRICES</div>
+    <div id="btc" class="value">BTC: —</div>
+    <div id="eth" class="value">ETH: —</div>
   </div>
 
   <div class="card">
     <div class="title">AI SIGNAL</div>
-    <div id="signal" class="signal neutral">Loading...</div>
+    <div id="signal" class="green">Loading...</div>
   </div>
 
 </div>
 
-<!-- SMART MONEY -->
-<div class="section" id="sec-smart">
+
+<!-- ================= SMART MONEY ================= -->
+<div id="smart" class="section">
+
+  <div class="card">
+    <div class="title">SMART MONEY SIGNAL</div>
+    <div id="smart-summary" class="value">Loading...</div>
+  </div>
 
   <div class="card">
     <div class="title">WHALES</div>
@@ -120,7 +93,7 @@ body {
   <div class="card">
     <div class="title">CEX FLOW</div>
     <div id="cex-flow"></div>
-    <div id="cex-signal"></div>
+    <div id="cex-interpret"></div>
   </div>
 
   <div class="card">
@@ -130,73 +103,69 @@ body {
 
 </div>
 
+
 <script>
-const API = window.location.origin;
 
-// =====================
-// TAB SWITCH (FIXED)
-// =====================
-function switchTab(tab, el) {
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+const API = "https://aloha-terminal.onrender.com";
 
-  el.classList.add('active');
-  document.getElementById('sec-' + tab).classList.add('active');
+// ================= TAB SWITCH =================
+function switchTab(tab) {
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+
+  document.querySelector(`[onclick="switchTab('${tab}')"]`).classList.add('active');
+  document.getElementById(tab).classList.add('active');
 
   if(tab === 'smart') loadSmart();
 }
 
-// =====================
-// DATA LOADERS
-// =====================
-async function loadPrices() {
-  const r = await fetch(API + '/api/prices');
-  const d = await r.json();
 
-  document.getElementById('btc').textContent = "$" + d.BTC;
-  document.getElementById('eth').textContent = "$" + d.ETH;
+// ================= OVERVIEW =================
+async function loadOverview() {
+  const p = await fetch(API + '/api/prices').then(r=>r.json());
+  document.getElementById('btc').innerText = "BTC: $" + p['BTC-USD'].price;
+  document.getElementById('eth').innerText = "ETH: $" + p['ETH-USD'].price;
+
+  const s = await fetch(API + '/api/signal').then(r=>r.json());
+  document.getElementById('signal').innerText = s.status + " — " + s.message;
 }
 
-function loadSignal() {
-  const el = document.getElementById('signal');
 
-  el.className = "signal neutral";
-  el.innerHTML = "<b>NEUTRAL</b><br>BTC stable, no clear edge.";
-}
-
+// ================= SMART MONEY =================
 async function loadSmart() {
-  const r = await fetch(API + '/api/smartmoney');
-  const d = await r.json();
+  const d = await fetch(API + '/api/smartmoney').then(r=>r.json());
 
-  // whales
+  const bullish = d.cex_flow < 0;
+
+  document.getElementById('smart-summary').innerHTML =
+    bullish
+      ? '<span class="green">🟢 ACCUMULATION</span>'
+      : '<span class="red">🔴 DISTRIBUTION</span>';
+
   document.getElementById('smart-whales').innerHTML =
     d.whales.map(w =>
       `<div class="${w.type==='buy'?'green':'red'}">
-        ${w.label} $${w.amount}
+        ${w.type==='buy'?'+':'-'} ${w.label} $${w.amount}
       </div>`
     ).join('');
 
-  // flow
-  document.getElementById('cex-flow').textContent =
-    "$" + d.cex_flow;
+  document.getElementById('cex-flow').innerText =
+    "Net Flow: $" + d.cex_flow;
 
-  document.getElementById('cex-signal').innerHTML =
-    d.cex_flow < 0
-      ? '<span class="green">ACCUMULATION</span>'
-      : '<span class="red">DISTRIBUTION</span>';
+  document.getElementById('cex-interpret').innerHTML =
+    bullish
+      ? '<span class="green">Funds leaving exchanges → bullish</span>'
+      : '<span class="red">Funds entering exchanges → bearish</span>';
 
-  // chip holders
   document.getElementById('chip-holders').innerHTML =
     d.chip.map(h =>
-      `<div>${h.wallet} (${h.pnl}%)</div>`
+      `<div>${h.wallet} (+${h.pnl}%)</div>`
     ).join('');
 }
 
-// =====================
-// INIT
-// =====================
-loadPrices();
-loadSignal();
+
+// ================= INIT =================
+loadOverview();
 
 </script>
 
