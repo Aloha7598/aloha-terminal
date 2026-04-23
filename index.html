@@ -39,7 +39,7 @@ body {
 .red { color:#ff4d6d }
 
 .title {
-  font-size:14px;
+  font-size:13px;
   color:#9ca3af;
   margin-bottom:8px;
 }
@@ -60,6 +60,7 @@ body {
   <div class="nav-item" onclick="switchTab('smart')">Smart Money</div>
 </div>
 
+
 <!-- ================= OVERVIEW ================= -->
 <div id="overview" class="section active">
 
@@ -71,7 +72,8 @@ body {
 
   <div class="card">
     <div class="title">AI SIGNAL</div>
-    <div id="signal" class="green">Loading...</div>
+    <div id="signal">Loading...</div>
+    <div id="signal-details" style="font-size:12px; opacity:0.7;"></div>
   </div>
 
 </div>
@@ -108,7 +110,6 @@ body {
 
 const API = "https://aloha-terminal.onrender.com";
 
-// ================= TAB SWITCH =================
 function switchTab(tab) {
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
@@ -122,23 +123,34 @@ function switchTab(tab) {
 
 // ================= OVERVIEW =================
 async function loadOverview() {
+
   const p = await fetch(API + '/api/prices').then(r=>r.json());
+
   document.getElementById('btc').innerText = "BTC: $" + p['BTC-USD'].price;
   document.getElementById('eth').innerText = "ETH: $" + p['ETH-USD'].price;
 
+
   const s = await fetch(API + '/api/signal').then(r=>r.json());
-  document.getElementById('signal').innerText = s.status + " — " + s.message;
+
+  let color = "#ccc";
+  if(s.status === "BULLISH") color = "#00ffa3";
+  if(s.status === "RISK") color = "#ff4d6d";
+
+  document.getElementById('signal').innerHTML =
+    `<span style="color:${color}">${s.status}</span>`;
+
+  document.getElementById('signal-details').innerText =
+    s.details.join(", ");
 }
 
 
-// ================= SMART MONEY =================
+// ================= SMART =================
 async function loadSmart() {
+
   const d = await fetch(API + '/api/smartmoney').then(r=>r.json());
 
-  const bullish = d.cex_flow < 0;
-
   document.getElementById('smart-summary').innerHTML =
-    bullish
+    d.cex_signal === "ACCUMULATION"
       ? '<span class="green">🟢 ACCUMULATION</span>'
       : '<span class="red">🔴 DISTRIBUTION</span>';
 
@@ -153,7 +165,7 @@ async function loadSmart() {
     "Net Flow: $" + d.cex_flow;
 
   document.getElementById('cex-interpret').innerHTML =
-    bullish
+    d.cex_signal === "ACCUMULATION"
       ? '<span class="green">Funds leaving exchanges → bullish</span>'
       : '<span class="red">Funds entering exchanges → bearish</span>';
 
@@ -164,7 +176,7 @@ async function loadSmart() {
 }
 
 
-// ================= INIT =================
+// INIT
 loadOverview();
 
 </script>
