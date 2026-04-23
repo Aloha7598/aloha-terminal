@@ -162,7 +162,9 @@ header{display:flex;align-items:center;justify-content:space-between;padding:12p
 <nav class="nav">
   <div class="nav-item active" onclick="tab('overview',this)">Overview</div>
   <div class="nav-item" onclick="tab('etf',this)">ETF Flows</div>
+  <div class="nav-item" onclick="tab('onchain',this)">On-Chain</div>
   <div class="nav-item" onclick="tab('risk',this)">Risk</div>
+  <div class="nav-item" onclick="tab('sentiment',this)">Sentiment</div>
   <div class="nav-item" onclick="tab('news',this)">News</div>
 </nav>
 <div class="content">
@@ -233,6 +235,65 @@ header{display:flex;align-items:center;justify-content:space-between;padding:12p
       <div class="dr"><span class="dk"><span style="color:var(--amber)">●</span> US PPI</span><span class="dv" style="color:var(--text2)">May 15</span></div>
       <div class="dr"><span class="dk"><span style="color:var(--red)">●</span> US PCE</span><span class="dv" style="color:var(--amber)">May 22</span></div>
       <div class="dr"><span class="dk"><span style="color:var(--red)">●</span> FOMC Decision</span><span class="dv" style="color:var(--amber)">Jun 11</span></div>
+    </div>
+  </div>
+
+  <div class="section" id="sec-onchain">
+    <div class="card">
+      <div class="card-header"><div class="card-title">STH / LTH Indicators</div>
+      <div class="badge" style="background:rgba(255,170,0,.12);color:var(--amber)">ESTIMATED</div></div>
+      <div class="dr"><span class="dk">STH SOPR</span><span class="dv" style=\"""" + gc(btc_c) + """">""" + str(onchain_sopr) + """</span></div>
+      <div class="dr"><span class="dk">LTH SOPR</span><span class="dv" style="color:var(--green)">""" + str(round(onchain_sopr * 1.4, 4)) + """</span></div>
+      <div class="dr"><span class="dk">LTH Supply %</span><span class="dv" style="color:var(--green)">74.3%</span></div>
+      <div class="dr"><span class="dk">Signal</span><span class="dv" style=\"""" + gc(btc_c) + """">""" + ("Profit-taking" if btc_c > 2 else "Accumulation" if btc_c < -2 else "Neutral") + """</span></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">Market Valuation</div>
+      <div class="badge" style="background:rgba(255,170,0,.12);color:var(--amber)">ESTIMATED</div></div>
+      <div class="dr"><span class="dk">MVRV Z-Score</span><span class="dv" style="color:var(--amber)">""" + str(onchain_mvrv) + """</span></div>
+      <div class="dr"><span class="dk">Puell Multiple</span><span class="dv" style="color:var(--green)">""" + str(round(1.1 + btc_c/200, 2)) + """</span></div>
+      <div class="dr"><span class="dk">Exchange reserve chg</span><span class="dv" style="color:var(--green)">""" + str(round(-2.1 + btc_c/100, 2)) + """%</span></div>
+      <div class="sr">ADD GLASSNODE_KEY IN RENDER ENV FOR LIVE DATA ($29/mo)</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">DeFi TVL — DefiLlama</div>
+      <div class="badge" style="background:rgba(0,229,160,.12);color:var(--green)">LIVE</div></div>
+      <div class="dr"><span class="dk">Total DeFi TVL</span><span class="dv" style="color:var(--green)">$""" + str(tvl) + """B</span></div>
+      <div class="sr">SRC: DEFILLAMA.COM</div>
+    </div>
+  </div>
+
+  <div class="section" id="sec-sentiment">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Fear & Greed Index</div>
+      <div class="badge" style="background:rgba(0,229,160,.12);color:var(--green)">LIVE</div></div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:48px;font-weight:500;color:""" + fg_col + """">""" + str(fg_val) + """</div>
+      <div style="font-size:14px;margin:4px 0 10px;color:var(--text2)">""" + fg_label + """</div>
+      <div style="height:6px;border-radius:3px;background:linear-gradient(to right,var(--green),var(--amber),var(--red));position:relative;margin-bottom:4px">
+        <div style="position:absolute;top:50%;transform:translate(-50%,-50%);left:""" + str(fg_val) + """%;width:12px;height:12px;border-radius:50%;background:white;border:2px solid var(--bg)"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);font-family:'IBM Plex Mono',monospace">
+        <span>FEAR</span><span>NEUTRAL</span><span>GREED</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">Social Sentiment</div>
+      <div class="badge" style="background:rgba(68,136,255,.12);color:var(--blue)">LUNARCRUSH</div></div>
+      <div class="dr"><span class="dk">BTC Galaxy Score</span><span class="dv" id="btc-galaxy">—</span></div>
+      <div class="dr"><span class="dk">ETH Galaxy Score</span><span class="dv" id="eth-galaxy">—</span></div>
+      <div class="dr"><span class="dk">BTC AltRank</span><span class="dv" id="btc-altrank">—</span></div>
+      <div class="dr"><span class="dk">BTC Social Volume</span><span class="dv" id="btc-social">—</span></div>
+      <div class="sr">ADD LUNARCRUSH_KEY FOR LIVE DATA</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">Trending Narratives</div></div>
+      <div style="padding:4px 0">
+        <span style="display:inline-block;font-size:10px;padding:3px 8px;border-radius:5px;margin:2px;border:0.5px solid rgba(255,255,255,0.12);color:var(--blue)">ETF inflows</span>
+        <span style="display:inline-block;font-size:10px;padding:3px 8px;border-radius:5px;margin:2px;border:0.5px solid rgba(255,255,255,0.12);color:var(--green)">Rate cut hopes</span>
+        <span style="display:inline-block;font-size:10px;padding:3px 8px;border-radius:5px;margin:2px;border:0.5px solid rgba(255,255,255,0.12);color:var(--amber)">Macro uncertainty</span>
+        <span style="display:inline-block;font-size:10px;padding:3px 8px;border-radius:5px;margin:2px;border:0.5px solid rgba(255,255,255,0.12);color:var(--blue)">DeFi TVL growth</span>
+        <span style="display:inline-block;font-size:10px;padding:3px 8px;border-radius:5px;margin:2px;border:0.5px solid rgba(255,255,255,0.12);color:var(--green)">BTC halving effects</span>
+      </div>
     </div>
   </div>
 
