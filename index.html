@@ -1,1253 +1,139 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
-  />
-  <title>Aloha Terminal</title>
-
-  <style>
-    :root{
-      --bg:#0b0f1a;
-      --bg-2:#0f172a;
-      --panel:#111827;
-      --panel-2:#0f1627;
-      --muted:#94a3b8;
-      --text:#e6edf3;
-      --line:rgba(255,255,255,.06);
-      --green:#00ffa3;
-      --yellow:#ffd166;
-      --red:#ff4d6d;
-      --blue:#56b6ff;
-      --purple:#b388ff;
-      --chip:#182132;
-      --shadow:0 10px 30px rgba(0,0,0,.25);
-      --radius:16px;
-    }
-
-    *{box-sizing:border-box}
-    html,body{
-      margin:0;
-      padding:0;
-      background:linear-gradient(180deg,#09101c 0%, #0b0f1a 100%);
-      color:var(--text);
-      font-family:Inter, Arial, sans-serif;
-    }
-
-    body{
-      min-height:100vh;
-      padding-bottom:100px;
-    }
-
-    .app{
-      max-width:820px;
-      margin:0 auto;
-      padding:12px 12px 24px;
-    }
-
-    .hero{
-      position:sticky;
-      top:0;
-      z-index:50;
-      backdrop-filter: blur(12px);
-      background:rgba(11,15,26,.82);
-      border-bottom:1px solid var(--line);
-      margin:0 -12px 12px;
-      padding:12px 12px 14px;
-    }
-
-    .brand-row{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-    }
-
-    .brand h1{
-      margin:0;
-      font-size:20px;
-      letter-spacing:.3px;
-    }
-
-    .brand .sub{
-      color:var(--muted);
-      font-size:12px;
-      margin-top:4px;
-    }
-
-    .live-pill{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      background:rgba(0,255,163,.08);
-      color:var(--green);
-      border:1px solid rgba(0,255,163,.18);
-      border-radius:999px;
-      padding:8px 10px;
-      font-size:12px;
-      font-weight:600;
-      white-space:nowrap;
-    }
-
-    .live-dot{
-      width:8px;height:8px;border-radius:999px;background:var(--green);
-      box-shadow:0 0 10px var(--green);
-    }
-
-    .top-search{
-      margin-top:12px;
-      display:flex;
-      gap:8px;
-    }
-
-    .input{
-      width:100%;
-      background:var(--panel);
-      color:var(--text);
-      border:1px solid var(--line);
-      border-radius:14px;
-      outline:none;
-      padding:14px 14px;
-      font-size:14px;
-    }
-
-    .btn{
-      border:none;
-      border-radius:14px;
-      padding:14px 14px;
-      font-weight:700;
-      cursor:pointer;
-      color:#04120d;
-      background:var(--green);
-      box-shadow:var(--shadow);
-    }
-
-    .btn.ghost{
-      background:transparent;
-      color:var(--text);
-      border:1px solid var(--line);
-      box-shadow:none;
-    }
-
-    .nav{
-      display:grid;
-      grid-template-columns:repeat(4,1fr);
-      gap:8px;
-      margin-top:12px;
-    }
-
-    .nav-item{
-      background:var(--panel);
-      border:1px solid var(--line);
-      border-radius:14px;
-      text-align:center;
-      padding:12px 8px;
-      font-size:13px;
-      color:#7f8ba0;
-      cursor:pointer;
-      transition:.2s ease;
-      user-select:none;
-    }
-
-    .nav-item.active{
-      color:var(--green);
-      border-color:rgba(0,255,163,.25);
-      background:linear-gradient(180deg,rgba(0,255,163,.08),rgba(0,255,163,.03));
-    }
-
-    .section{display:none}
-    .section.active{display:block}
-
-    .grid{
-      display:grid;
-      gap:12px;
-    }
-
-    .grid.two{
-      grid-template-columns:repeat(2,minmax(0,1fr));
-    }
-
-    .card{
-      background:linear-gradient(180deg,var(--panel),var(--panel-2));
-      border:1px solid var(--line);
-      border-radius:var(--radius);
-      padding:14px;
-      box-shadow:var(--shadow);
-      margin-bottom:12px;
-    }
-
-    .title{
-      font-size:12px;
-      font-weight:700;
-      color:#99a5bb;
-      letter-spacing:.08em;
-      margin-bottom:10px;
-      text-transform:uppercase;
-    }
-
-    .value{
-      font-size:20px;
-      font-weight:800;
-      line-height:1.2;
-    }
-
-    .muted{
-      color:var(--muted);
-    }
-
-    .tiny{
-      font-size:12px;
-      color:var(--muted);
-      line-height:1.5;
-    }
-
-    .row{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-    }
-
-    .stack{
-      display:flex;
-      flex-direction:column;
-      gap:8px;
-    }
-
-    .list{
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-    }
-
-    .item{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:12px;
-      padding:12px;
-      background:rgba(255,255,255,.02);
-      border:1px solid var(--line);
-      border-radius:14px;
-    }
-
-    .left{
-      min-width:0;
-    }
-
-    .label{
-      font-size:14px;
-      font-weight:700;
-    }
-
-    .subline{
-      color:var(--muted);
-      font-size:12px;
-      margin-top:4px;
-    }
-
-    .green{color:var(--green)}
-    .red{color:var(--red)}
-    .yellow{color:var(--yellow)}
-    .blue{color:var(--blue)}
-    .purple{color:var(--purple)}
-
-    .pill{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      border-radius:999px;
-      padding:8px 10px;
-      font-size:12px;
-      font-weight:800;
-      white-space:nowrap;
-    }
-
-    .pill.green{
-      background:rgba(0,255,163,.10);
-      border:1px solid rgba(0,255,163,.18);
-    }
-
-    .pill.red{
-      background:rgba(255,77,109,.10);
-      border:1px solid rgba(255,77,109,.18);
-    }
-
-    .pill.yellow{
-      background:rgba(255,209,102,.10);
-      border:1px solid rgba(255,209,102,.18);
-    }
-
-    .pill.blue{
-      background:rgba(86,182,255,.10);
-      border:1px solid rgba(86,182,255,.18);
-    }
-
-    .chips{
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-    }
-
-    .chip{
-      background:var(--chip);
-      border:1px solid var(--line);
-      color:#c9d3e3;
-      padding:8px 10px;
-      border-radius:999px;
-      font-size:12px;
-      cursor:pointer;
-    }
-
-    .chip.active{
-      border-color:rgba(0,255,163,.22);
-      color:var(--green);
-      background:rgba(0,255,163,.06);
-    }
-
-    .signal-box{
-      border-radius:16px;
-      padding:14px;
-      border:1px solid var(--line);
-      background:
-        radial-gradient(circle at top right, rgba(0,255,163,.08), transparent 28%),
-        linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
-    }
-
-    .signal-grid{
-      display:grid;
-      grid-template-columns:repeat(2,minmax(0,1fr));
-      gap:10px;
-      margin-top:12px;
-    }
-
-    .metric{
-      background:rgba(255,255,255,.02);
-      border:1px solid var(--line);
-      border-radius:14px;
-      padding:10px;
-    }
-
-    .metric .k{
-      color:var(--muted);
-      font-size:12px;
-      margin-bottom:6px;
-    }
-
-    .metric .v{
-      font-size:14px;
-      font-weight:700;
-    }
-
-    .search-results{
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-      margin-top:12px;
-    }
-
-    .coin-row{
-      display:flex;
-      gap:12px;
-      align-items:center;
-      justify-content:space-between;
-      background:rgba(255,255,255,.02);
-      border:1px solid var(--line);
-      border-radius:16px;
-      padding:12px;
-      cursor:pointer;
-    }
-
-    .coin-main{
-      display:flex;
-      flex-direction:column;
-      min-width:0;
-    }
-
-    .coin-name{
-      font-size:15px;
-      font-weight:800;
-    }
-
-    .coin-meta{
-      margin-top:4px;
-      color:var(--muted);
-      font-size:12px;
-    }
-
-    .coin-right{
-      text-align:right;
-      flex-shrink:0;
-    }
-
-    .score{
-      font-size:22px;
-      font-weight:900;
-    }
-
-    .divider{
-      height:1px;
-      background:var(--line);
-      margin:12px 0;
-    }
-
-    .empty{
-      text-align:center;
-      padding:22px 12px;
-      color:var(--muted);
-      border:1px dashed var(--line);
-      border-radius:16px;
-      background:rgba(255,255,255,.02);
-    }
-
-    .footer-space{height:12px}
-
-    @media (max-width:640px){
-      .grid.two,
-      .signal-grid{
-        grid-template-columns:1fr;
-      }
-
-      .nav{
-        grid-template-columns:repeat(4,1fr);
-      }
-
-      .nav-item{
-        font-size:12px;
-        padding:11px 6px;
-      }
-
-      .value{font-size:18px}
-    }
-  </style>
-</head>
-<body>
-  <div class="app">
-
-    <div class="hero">
-      <div class="brand-row">
-        <div class="brand">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ALOHA / TERMINAL</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
+        <div>
           <h1>ALOHA / TERMINAL</h1>
-          <div class="sub">On-chain signal terminal · search → clarity → action</div>
+          <p>On-chain signal terminal - search -> clarity -> action</p>
         </div>
-        <div class="live-pill">
-          <span class="live-dot"></span>
-          LIVE
+        <span class="live-pill">LIVE</span>
+      </header>
+
+      <section class="search-row">
+        <input id="coinSearchInput" type="text" placeholder="Search coin ticker (e.g. CHIP, DOGE, PEPE)" />
+        <button id="searchBtn" class="btn btn-primary">Search</button>
+      </section>
+
+      <nav class="tabs">
+        <button class="tab-btn" data-tab="overview">Overview</button>
+        <button class="tab-btn active" data-tab="smart">Smart</button>
+        <button class="tab-btn" data-tab="early">Early Signal</button>
+        <button class="tab-btn" data-tab="watchlist">Watchlist</button>
+      </nav>
+
+      <section class="panel hero-panel">
+        <div class="section-title">SMART MONEY SIGNAL</div>
+        <h2 id="heroSignal">ACCUMULATION</h2>
+        <p id="heroSignalDesc">Funds leaving exchanges, whale demand improving, conviction rising.</p>
+      </section>
+
+      <main class="grid">
+        <section class="panel" id="coinMetaPanel">
+          <div class="section-title">ASSET SNAPSHOT</div>
+          <div class="meta-grid">
+            <div class="meta-row">
+              <span>Coin</span>
+              <strong id="coinName">CHIP</strong>
+            </div>
+            <div class="meta-row">
+              <span>Price</span>
+              <strong id="coinPrice">$0.0042</strong>
+            </div>
+            <div class="meta-row">
+              <span>24h Change</span>
+              <strong id="coinChange" class="green">+12.6%</strong>
+            </div>
+            <div class="meta-row">
+              <span>Market Cap</span>
+              <strong id="coinMcap">$145M</strong>
+            </div>
+          </div>
+          <button id="favouriteBtn" class="btn btn-secondary">+ Add to Watchlist</button>
+        </section>
+
+        <section class="panel" id="flowPanel">
+          <div class="section-title">CEX FLOW</div>
+          <h3 id="netFlowText">Net Flow: -$1.25M</h3>
+          <p id="netFlowDesc" class="green">Funds leaving exchanges -> bullish</p>
+        </section>
+      </main>
+
+      <section class="panel">
+        <div class="section-title">TOP 20 HOLDERS INTELLIGENCE</div>
+        <div class="chip-row" id="holderCategoryChips"></div>
+        <div class="cards-2">
+          <div class="subpanel">
+            <h4>Whale Events</h4>
+            <ul id="whaleEventsList"></ul>
+          </div>
+          <div class="subpanel">
+            <h4>Holder Clusters</h4>
+            <ul id="holderClustersList"></ul>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <div class="top-search">
-        <input id="global-search" class="input" placeholder="Search coin / symbol / contract" />
-        <button class="btn" onclick="quickSearch()">Search</button>
-      </div>
+      <section class="panel cards-2">
+        <div class="subpanel">
+          <h4>SIGNAL</h4>
+          <div id="signalSummary" class="summary-lines"></div>
+        </div>
+        <div class="subpanel">
+          <h4>ON-CHAIN</h4>
+          <div id="onchainSummary" class="summary-lines"></div>
+        </div>
+      </section>
 
-      <div class="nav">
-        <div class="nav-item active" onclick="switchTab('overview', this)">Overview</div>
-        <div class="nav-item" onclick="switchTab('smart', this)">Smart</div>
-        <div class="nav-item" onclick="switchTab('search', this)">Search</div>
-        <div class="nav-item" onclick="switchTab('watchlist', this)">Watchlist</div>
-      </div>
+      <section class="panel cards-2">
+        <div class="subpanel">
+          <h4>MACRO + ETF FLOW</h4>
+          <div id="macroEtfSummary" class="summary-lines"></div>
+        </div>
+        <div class="subpanel">
+          <h4>X NARRATIVE SENTIMENT</h4>
+          <div id="xSentimentSummary" class="summary-lines"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-title">RISK / LIQUIDATIONS</div>
+        <div id="riskSummary" class="summary-lines"></div>
+      </section>
+
+      <section class="panel">
+        <div class="section-title">EARLY SIGNAL MODE</div>
+        <div id="earlySignalBanner" class="early-banner"></div>
+        <ul id="earlySignalFacts" class="facts-list"></ul>
+      </section>
+
+      <section class="panel">
+        <div class="section-title">COMPRESSED TRADER DIRECTION</div>
+        <p id="compressedDirection"></p>
+      </section>
+
+      <section class="panel">
+        <div class="section-title">AI ANALYST</div>
+        <div class="plan-row">
+          <button id="planToggleBtn" class="btn btn-secondary">Switch to Pro</button>
+          <span id="planBadge" class="chip">Plan: Free</span>
+        </div>
+        <p id="aiSummary"></p>
+        <ul id="aiRiskNotes" class="facts-list"></ul>
+      </section>
+
+      <section class="panel">
+        <div class="section-title">ANALYTICS SNAPSHOT</div>
+        <div id="analyticsSummary" class="summary-lines"></div>
+      </section>
     </div>
 
-    <!-- ================= OVERVIEW ================= -->
-    <div id="overview" class="section active">
-
-      <div class="grid two">
-        <div class="card">
-          <div class="title">Prices</div>
-          <div id="btc" class="value">BTC: —</div>
-          <div id="eth" class="value" style="margin-top:8px;">ETH: —</div>
-        </div>
-
-        <div class="card">
-          <div class="title">Market Bias</div>
-          <div id="market-bias" class="value">Loading...</div>
-          <div id="market-bias-detail" class="tiny" style="margin-top:8px;"></div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="title">AI Signal</div>
-        <div id="signal" class="value">Loading...</div>
-        <div id="signal-details" class="tiny" style="margin-top:8px;"></div>
-      </div>
-
-      <div class="card">
-        <div class="title">Early Signal Mode</div>
-        <div id="early-mode" class="signal-box">
-          <div class="value">Loading...</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="title">Actionable States</div>
-        <div class="chips">
-          <div class="pill green">🟢 ACCUMULATION</div>
-          <div class="pill yellow">🟡 WAIT</div>
-          <div class="pill red">🔴 DISTRIBUTION</div>
-          <div class="pill blue">🔥 BREAKOUT</div>
-        </div>
-        <div class="tiny" style="margin-top:10px;">
-          Compress signal → clarity → action
-        </div>
-      </div>
-    </div>
-
-    <!-- ================= SMART MONEY ================= -->
-    <div id="smart" class="section">
-
-      <div class="card">
-        <div class="title">Smart Money Signal</div>
-        <div id="smart-summary" class="value">Loading...</div>
-        <div id="smart-summary-note" class="tiny" style="margin-top:8px;"></div>
-      </div>
-
-      <div class="card">
-        <div class="title">Whales</div>
-        <div id="smart-whales" class="list"></div>
-      </div>
-
-      <div class="grid two">
-        <div class="card">
-          <div class="title">CEX Flow</div>
-          <div id="cex-flow" class="value">—</div>
-          <div id="cex-interpret" class="tiny" style="margin-top:8px;"></div>
-        </div>
-
-        <div class="card">
-          <div class="title">Chip Holders</div>
-          <div id="chip-holders" class="list"></div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="title">Top 20 Holder Intelligence</div>
-        <div id="holder-groups" class="signal-grid"></div>
-      </div>
-    </div>
-
-    <!-- ================= SEARCH ================= -->
-    <div id="search" class="section">
-
-      <div class="card">
-        <div class="title">Search Coins</div>
-        <div class="row">
-          <input id="search-input" class="input" placeholder="Type coin, ticker, or contract" />
-          <button class="btn" onclick="searchCoins()">Go</button>
-        </div>
-        <div id="search-results" class="search-results"></div>
-      </div>
-
-      <div id="coin-detail-wrap"></div>
-
-    </div>
-
-    <!-- ================= WATCHLIST ================= -->
-    <div id="watchlist" class="section">
-
-      <div class="card">
-        <div class="row" style="margin-bottom:10px;">
-          <div>
-            <div class="title" style="margin-bottom:4px;">Watchlist</div>
-            <div class="tiny">Favourite coins, live states, and early alerts</div>
-          </div>
-          <div id="watchlist-count" class="pill blue">0 coins</div>
-        </div>
-
-        <div class="chips" style="margin-bottom:12px;">
-          <div class="chip active" data-filter="all" onclick="setWatchFilter(this)">All</div>
-          <div class="chip" data-filter="EARLY" onclick="setWatchFilter(this)">Early Signal</div>
-          <div class="chip" data-filter="ACCUMULATION" onclick="setWatchFilter(this)">Accumulation</div>
-          <div class="chip" data-filter="WAIT" onclick="setWatchFilter(this)">Wait</div>
-          <div class="chip" data-filter="DISTRIBUTION" onclick="setWatchFilter(this)">Distribution</div>
-          <div class="chip" data-filter="BREAKOUT" onclick="setWatchFilter(this)">Breakout</div>
-        </div>
-
-        <div id="watchlist-body"></div>
-      </div>
-
-    </div>
-
-    <div class="footer-space"></div>
-  </div>
-
-  <script>
-    const API = "https://aloha-terminal.onrender.com";
-    const storageKey = "aloha_watchlist_v2";
-
-    const state = {
-      watchlist: JSON.parse(localStorage.getItem(storageKey) || "[]"),
-      filter: "all",
-      currentCoin: null
-    };
-
-    function fmtUSD(v){
-      if(v === null || v === undefined || isNaN(v)) return "—";
-      const n = Number(v);
-      if(Math.abs(n) >= 1_000_000_000) return "$" + (n/1_000_000_000).toFixed(2) + "B";
-      if(Math.abs(n) >= 1_000_000) return "$" + (n/1_000_000).toFixed(2) + "M";
-      if(Math.abs(n) >= 1_000) return "$" + (n/1_000).toFixed(1) + "K";
-      return "$" + n.toLocaleString();
-    }
-
-    function fmtPct(v){
-      if(v === null || v === undefined || isNaN(v)) return "—";
-      const n = Number(v);
-      const sign = n > 0 ? "+" : "";
-      return sign + n.toFixed(2) + "%";
-    }
-
-    function safeArr(v){
-      return Array.isArray(v) ? v : [];
-    }
-
-    async function fetchJSON(url, fallback = null){
-      try{
-        const res = await fetch(url);
-        if(!res.ok) throw new Error("Request failed");
-        return await res.json();
-      }catch(e){
-        return fallback;
-      }
-    }
-
-    function switchTab(tab, el){
-      document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
-      document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
-
-      if(el) el.classList.add("active");
-      document.getElementById(tab).classList.add("active");
-
-      if(tab === "smart") loadSmart();
-      if(tab === "watchlist") renderWatchlist();
-    }
-
-    function statusClass(status){
-      const s = String(status || "").toUpperCase();
-      if(s.includes("BREAKOUT")) return "blue";
-      if(s.includes("ACCUMULATION")) return "green";
-      if(s.includes("WAIT")) return "yellow";
-      return "red";
-    }
-
-    function statusPill(status){
-      const cls = statusClass(status);
-      const icon =
-        cls === "green" ? "🟢" :
-        cls === "yellow" ? "🟡" :
-        cls === "blue" ? "🔥" : "🔴";
-      return `<span class="pill ${cls}">${icon} ${status || "UNKNOWN"}</span>`;
-    }
-
-    function saveWatchlist(){
-      localStorage.setItem(storageKey, JSON.stringify(state.watchlist));
-    }
-
-    function inWatchlist(id){
-      return state.watchlist.some(x => x.id === id);
-    }
-
-    function toggleWatchlist(coin){
-      const exists = inWatchlist(coin.id);
-      if(exists){
-        state.watchlist = state.watchlist.filter(x => x.id !== coin.id);
-      }else{
-        state.watchlist.unshift({
-          id: coin.id,
-          symbol: coin.symbol,
-          name: coin.name,
-          chain: coin.chain,
-          price: coin.price,
-          change24h: coin.change24h,
-          status: coin.summary?.status || "WAIT",
-          score: coin.summary?.score || 0,
-          early: !!coin.earlySignal?.detected,
-          updatedAt: new Date().toISOString()
-        });
-      }
-      saveWatchlist();
-      renderWatchlist();
-      if(state.currentCoin && state.currentCoin.id === coin.id){
-        renderCoinDetail(state.currentCoin);
-      }
-    }
-
-    function setWatchFilter(el){
-      document.querySelectorAll("[data-filter]").forEach(c => c.classList.remove("active"));
-      el.classList.add("active");
-      state.filter = el.dataset.filter;
-      renderWatchlist();
-    }
-
-    function quickSearch(){
-      const q = document.getElementById("global-search").value.trim();
-      if(!q) return;
-      document.getElementById("search-input").value = q;
-      document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
-      document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
-      document.querySelector(`.nav-item:nth-child(3)`).classList.add("active");
-      document.getElementById("search").classList.add("active");
-      searchCoins();
-    }
-
-    function marketBiasFromSignal(signalData){
-      const details = safeArr(signalData?.details);
-      const bullish = details.some(x => /BTC trending up/i.test(x));
-      const weakEth = details.some(x => /ETH lagging/i.test(x));
-      const noSmart = details.some(x => /No smart money inflow/i.test(x));
-
-      let title = "WAIT";
-      let color = "yellow";
-      let note = "Mixed market structure";
-
-      if(bullish && !weakEth && !noSmart){
-        title = "BULLISH BIAS";
-        color = "green";
-        note = "Broad confirmation improving";
-      }else if(bullish && (weakEth || noSmart)){
-        title = "WAIT";
-        color = "yellow";
-        note = "BTC strong, confirmation still weak";
-      }else if(noSmart){
-        title = "LOW CONVICTION";
-        color = "red";
-        note = "No meaningful smart money inflow";
-      }
-
-      return {
-        title: `<span class="${color}">${title}</span>`,
-        note: details.join(" · ") || note
-      };
-    }
-
-    // ================= OVERVIEW =================
-    async function loadOverview(){
-      const pricesFallback = {
-        "BTC-USD": { price: 68420 },
-        "ETH-USD": { price: 3520 }
-      };
-
-      const p = await fetchJSON(API + "/api/prices", pricesFallback);
-
-      document.getElementById("btc").innerText = "BTC: " + fmtUSD(p?.["BTC-USD"]?.price);
-      document.getElementById("eth").innerText = "ETH: " + fmtUSD(p?.["ETH-USD"]?.price);
-
-      const signalFallback = {
-        status: "WAIT",
-        details: [
-          "BTC trending up",
-          "ETH lagging",
-          "No smart money inflow"
-        ]
-      };
-
-      const s = await fetchJSON(API + "/api/signal", signalFallback);
-
-      let color = "yellow";
-      if(String(s.status).toUpperCase() === "BULLISH") color = "green";
-      if(String(s.status).toUpperCase() === "RISK") color = "red";
-
-      document.getElementById("signal").innerHTML =
-        `<span class="${color}">${s.status}</span>`;
-
-      document.getElementById("signal-details").innerText =
-        safeArr(s.details).join(", ");
-
-      const bias = marketBiasFromSignal(s);
-      document.getElementById("market-bias").innerHTML = bias.title;
-      document.getElementById("market-bias-detail").innerText = bias.note;
-
-      renderEarlyMode({
-        detected: true,
-        bullets: [
-          "Supply +6% (3d)",
-          "Whale buys detected",
-          "No exchange inflow"
-        ],
-        status: "EARLY ACCUMULATION"
-      });
-    }
-
-    function renderEarlyMode(data){
-      const wrap = document.getElementById("early-mode");
-      if(!data?.detected){
-        wrap.innerHTML = `
-          <div class="value yellow">No early trigger</div>
-          <div class="tiny" style="margin-top:8px;">No strong accumulation before price yet</div>
-        `;
-        return;
-      }
-
-      wrap.innerHTML = `
-        <div class="row">
-          <div class="value green">EARLY SIGNAL DETECTED</div>
-          ${statusPill(data.status || "EARLY")}
-        </div>
-
-        <div class="divider"></div>
-
-        <div class="list">
-          ${safeArr(data.bullets).map(x => `
-            <div class="item">
-              <div class="label">${x}</div>
-            </div>
-          `).join("")}
-        </div>
-      `;
-    }
-
-    // ================= SMART MONEY =================
-    async function loadSmart(){
-      const fallback = {
-        cex_signal: "ACCUMULATION",
-        cex_flow: -230000,
-        whales: [
-          { type: "buy", label: "New wallet entry", amount: 58000 },
-          { type: "buy", label: "Whale cluster", amount: 112000 },
-          { type: "sell", label: "Passive holder trim", amount: 18000 }
-        ],
-        chip: [
-          { wallet: "0x9f...a12", pnl: 62 },
-          { wallet: "0x51...e29", pnl: 34 }
-        ],
-        holder_groups: [
-          { label: "Treasury / Multisig", count: 4, color: "blue" },
-          { label: "Exchange Wallets", count: 2, color: "red" },
-          { label: "Passive Whales", count: 9, color: "yellow" },
-          { label: "Active Wallets", count: 5, color: "green" }
-        ]
-      };
-
-      const d = await fetchJSON(API + "/api/smartmoney", fallback);
-
-      const accumulation = d.cex_signal === "ACCUMULATION";
-
-      document.getElementById("smart-summary").innerHTML =
-        accumulation
-          ? '<span class="green">🟢 ACCUMULATION</span>'
-          : '<span class="red">🔴 DISTRIBUTION</span>';
-
-      document.getElementById("smart-summary-note").innerText =
-        accumulation
-          ? "Funds leaving exchanges, whale demand improving, conviction rising"
-          : "Funds moving to exchanges, sell-side risk increasing";
-
-      document.getElementById("smart-whales").innerHTML =
-        safeArr(d.whales).map(w => `
-          <div class="item">
-            <div class="left">
-              <div class="label ${w.type === 'buy' ? 'green' : 'red'}">
-                ${w.type === 'buy' ? '+' : '-'} ${w.label}
-              </div>
-              <div class="subline">
-                ${w.type === 'buy' ? 'Buy pressure' : 'Sell pressure'}
-              </div>
-            </div>
-            <div class="label ${w.type === 'buy' ? 'green' : 'red'}">${fmtUSD(w.amount)}</div>
-          </div>
-        `).join("");
-
-      document.getElementById("cex-flow").innerText =
-        "Net Flow: " + fmtUSD(d.cex_flow);
-
-      document.getElementById("cex-interpret").innerHTML =
-        accumulation
-          ? '<span class="green">Funds leaving exchanges → bullish</span>'
-          : '<span class="red">Funds entering exchanges → bearish</span>';
-
-      document.getElementById("chip-holders").innerHTML =
-        safeArr(d.chip).map(h => `
-          <div class="item">
-            <div class="left">
-              <div class="label">${h.wallet}</div>
-              <div class="subline">Experienced holder</div>
-            </div>
-            <div class="label green">+${h.pnl}%</div>
-          </div>
-        `).join("");
-
-      document.getElementById("holder-groups").innerHTML =
-        safeArr(d.holder_groups).map(h => `
-          <div class="metric">
-            <div class="k">${h.label}</div>
-            <div class="v ${h.color || ''}">${h.count}</div>
-          </div>
-        `).join("");
-    }
-
-    // ================= SEARCH =================
-    async function searchCoins(){
-      const q = document.getElementById("search-input").value.trim();
-      if(!q){
-        document.getElementById("search-results").innerHTML =
-          `<div class="empty">Type a coin, ticker, or contract</div>`;
-        return;
-      }
-
-      document.getElementById("search-results").innerHTML =
-        `<div class="empty">Searching...</div>`;
-
-      const fallback = {
-        results: [
-          {
-            id: "pepe-eth",
-            symbol: "PEPE",
-            name: "Pepe",
-            chain: "Ethereum",
-            price: 0.0000139,
-            change24h: 7.84,
-            liquidity: 3200000,
-            volume24h: 9800000,
-            marketCap: 5800000000
-          },
-          {
-            id: "wif-sol",
-            symbol: "WIF",
-            name: "dogwifhat",
-            chain: "Solana",
-            price: 2.16,
-            change24h: -1.88,
-            liquidity: 1900000,
-            volume24h: 6100000,
-            marketCap: 2200000000
-          }
-        ]
-      };
-
-      const data = await fetchJSON(API + "/api/search?q=" + encodeURIComponent(q), fallback);
-      const results = safeArr(data?.results);
-
-      if(!results.length){
-        document.getElementById("search-results").innerHTML =
-          `<div class="empty">No results found</div>`;
-        return;
-      }
-
-      document.getElementById("search-results").innerHTML = results.map(c => `
-        <div class="coin-row" onclick='openCoin(${JSON.stringify(c).replace(/'/g, "&apos;")})'>
-          <div class="coin-main">
-            <div class="coin-name">${c.name} <span class="muted">${c.symbol}</span></div>
-            <div class="coin-meta">${c.chain} · Liq ${fmtUSD(c.liquidity)} · Vol ${fmtUSD(c.volume24h)}</div>
-          </div>
-          <div class="coin-right">
-            <div class="label">${fmtUSD(c.price)}</div>
-            <div class="${Number(c.change24h) >= 0 ? 'green' : 'red'} subline">${fmtPct(c.change24h)}</div>
-          </div>
-        </div>
-      `).join("");
-    }
-
-    async function openCoin(coin){
-      const fallback = {
-        ...coin,
-        summary: {
-          supply: "Rising",
-          mintBurn: "Positive",
-          smartMoney: "Not back",
-          exchangeFlow: "Outflow to CEX",
-          score: 2,
-          status: "WAIT"
-        },
-        onchain: {
-          supply: "Falling",
-          mintBurn: "Negative",
-          smartMoney: "Not back",
-          exchangeFlow: "Inflow (risk)",
-          score: 1,
-          status: "AVOID"
-        },
-        earlySignal: {
-          detected: true,
-          bullets: [
-            "Supply +6% (3d)",
-            "Whale buys detected",
-            "No exchange inflow"
-          ],
-          status: "EARLY ACCUMULATION"
-        },
-        holders: {
-          groups: [
-            { label: "Treasury / Multisig", count: 4 },
-            { label: "New high-volume buyers", count: 3 },
-            { label: "Passive whales", count: 8 },
-            { label: "Exchange wallets", count: 2 }
-          ],
-          newBuyers: {
-            count50k: 2,
-            count100k: 1,
-            entries: [
-              { wallet: "0x31...af9", usd: 54000, time: "28m ago" },
-              { wallet: "0x88...c12", usd: 104000, time: "51m ago" },
-              { wallet: "0x19...d0a", usd: 67000, time: "74m ago" }
-            ]
-          },
-          smartMoneyReturns: {
-            active: false,
-            note: "No strong re-accumulation yet",
-            bullets: [
-              "Mixed / passive holders",
-              "Some exchange deposits",
-              "No clustered large re-buys"
-            ]
-          },
-          avgBuySize: {
-            trend: "Increasing",
-            changePct: 38,
-            note: "Transactions getting bigger"
-          },
-          sellPressure: {
-            trend: "Improving",
-            changePct: -42,
-            note: "Fewer large red transactions · no big dumps"
-          },
-          exchangeFlow: {
-            trend: "Bullish",
-            note: "Exchange outflows > inflows"
-          }
-        },
-        context: [
-          "BTC trending up → bullish bias",
-          "ETH lagging → weak confirmation",
-          "No smart money inflow → low conviction"
-        ]
-      };
-
-      const detail = await fetchJSON(API + "/api/coin/" + encodeURIComponent(coin.id), fallback);
-      state.currentCoin = detail;
-      renderCoinDetail(detail);
-    }
-
-    function renderCoinDetail(c){
-      const el = document.getElementById("coin-detail-wrap");
-      const favText = inWatchlist(c.id) ? "★ Favourited" : "☆ Add to Watchlist";
-
-      el.innerHTML = `
-        <div class="card">
-          <div class="row">
-            <div>
-              <div class="title" style="margin-bottom:4px;">Coin Profile</div>
-              <div class="value">${c.name} <span class="muted">${c.symbol}</span></div>
-              <div class="tiny" style="margin-top:6px;">${c.chain} · Price ${fmtUSD(c.price)} · 24h ${fmtPct(c.change24h)}</div>
-            </div>
-            <button class="btn ghost" onclick='toggleWatchlist(${JSON.stringify(c).replace(/'/g, "&apos;")})'>${favText}</button>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="title">Signal</div>
-          <div class="signal-box">
-            <div class="row">
-              <div class="value">${statusPill(c.summary?.status || "WAIT")}</div>
-              <div class="score ${statusClass(c.summary?.status)}">${c.summary?.score || 0}/5</div>
-            </div>
-
-            <div class="signal-grid">
-              <div class="metric"><div class="k">Supply</div><div class="v">${emoji(c.summary?.supply)} ${c.summary?.supply || "—"}</div></div>
-              <div class="metric"><div class="k">Mint/Burn</div><div class="v">${emoji(c.summary?.mintBurn)} ${c.summary?.mintBurn || "—"}</div></div>
-              <div class="metric"><div class="k">Smart Money</div><div class="v">${emoji(c.summary?.smartMoney)} ${c.summary?.smartMoney || "—"}</div></div>
-              <div class="metric"><div class="k">Exchange Flow</div><div class="v">${emoji(c.summary?.exchangeFlow)} ${c.summary?.exchangeFlow || "—"}</div></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="title">On-Chain</div>
-          <div class="signal-box">
-            <div class="row">
-              <div class="value">${statusPill(c.onchain?.status || "AVOID")}</div>
-              <div class="score ${statusClass(c.onchain?.status)}">${c.onchain?.score || 0}/5</div>
-            </div>
-
-            <div class="signal-grid">
-              <div class="metric"><div class="k">Supply</div><div class="v">${emoji(c.onchain?.supply)} ${c.onchain?.supply || "—"}</div></div>
-              <div class="metric"><div class="k">Mint/Burn</div><div class="v">${emoji(c.onchain?.mintBurn)} ${c.onchain?.mintBurn || "—"}</div></div>
-              <div class="metric"><div class="k">Smart Money</div><div class="v">${emoji(c.onchain?.smartMoney)} ${c.onchain?.smartMoney || "—"}</div></div>
-              <div class="metric"><div class="k">Exchange Flow</div><div class="v">${emoji(c.onchain?.exchangeFlow)} ${c.onchain?.exchangeFlow || "—"}</div></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="title">Early Signal Mode</div>
-          ${
-            c.earlySignal?.detected
-              ? `
-                <div class="signal-box">
-                  <div class="row">
-                    <div class="value green">EARLY SIGNAL DETECTED</div>
-                    ${statusPill(c.earlySignal?.status || "EARLY")}
-                  </div>
-                  <div class="divider"></div>
-                  <div class="list">
-                    ${safeArr(c.earlySignal?.bullets).map(x => `
-                      <div class="item"><div class="label">${x}</div></div>
-                    `).join("")}
-                  </div>
-                </div>
-              `
-              : `
-                <div class="empty">No early accumulation signal yet</div>
-              `
-          }
-        </div>
-
-        <div class="card">
-          <div class="title">Top 20 Holders</div>
-          <div class="signal-grid">
-            ${safeArr(c.holders?.groups).map(g => `
-              <div class="metric">
-                <div class="k">${g.label}</div>
-                <div class="v">${g.count}</div>
-              </div>
-            `).join("")}
-          </div>
-        </div>
-
-        <div class="grid two">
-          <div class="card">
-            <div class="title">New High-Volume Buyers</div>
-            <div class="value green">
-              ${c.holders?.newBuyers?.count50k || 0} wallets $50K+ · ${c.holders?.newBuyers?.count100k || 0} wallets $100K+
-            </div>
-            <div class="tiny" style="margin-top:8px;">👉 This is HUGE signal</div>
-            <div class="divider"></div>
-            <div class="list">
-              ${safeArr(c.holders?.newBuyers?.entries).map(x => `
-                <div class="item">
-                  <div class="left">
-                    <div class="label">${x.wallet}</div>
-                    <div class="subline">${x.time}</div>
-                  </div>
-                  <div class="label green">${fmtUSD(x.usd)}</div>
-                </div>
-              `).join("")}
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="title">Smart Money Returns</div>
-            <div class="value ${c.holders?.smartMoneyReturns?.active ? 'green' : 'red'}">
-              ${c.holders?.smartMoneyReturns?.active ? 'Fresh capital detected' : 'Smart money NOT back yet'}
-            </div>
-            <div class="tiny" style="margin-top:8px;">${c.holders?.smartMoneyReturns?.note || ''}</div>
-            <div class="divider"></div>
-            <div class="list">
-              ${safeArr(c.holders?.smartMoneyReturns?.bullets).map(x => `
-                <div class="item"><div class="label">${x}</div></div>
-              `).join("")}
-            </div>
-          </div>
-        </div>
-
-        <div class="grid two">
-          <div class="card">
-            <div class="title">Increase Average Buy Size</div>
-            <div class="value green">+${c.holders?.avgBuySize?.changePct || 0}%</div>
-            <div class="tiny" style="margin-top:8px;">${c.holders?.avgBuySize?.trend || ''} · ${c.holders?.avgBuySize?.note || ''}</div>
-          </div>
-
-          <div class="card">
-            <div class="title">Decreasing Sell Pressure</div>
-            <div class="value green">${c.holders?.sellPressure?.changePct || 0}%</div>
-            <div class="tiny" style="margin-top:8px;">${c.holders?.sellPressure?.trend || ''} · ${c.holders?.sellPressure?.note || ''}</div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="title">Exchange Flow</div>
-          <div class="value ${/bullish/i.test(c.holders?.exchangeFlow?.trend || '') ? 'green' : 'red'}">
-            ${c.holders?.exchangeFlow?.trend || '—'}
-          </div>
-          <div class="tiny" style="margin-top:8px;">
-            ${c.holders?.exchangeFlow?.note || 'No exchange flow interpretation'}
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="title">Conclusion</div>
-          <div class="list">
-            ${safeArr(c.context).map(x => `
-              <div class="item"><div class="label">${x}</div></div>
-            `).join("")}
-          </div>
-          <div class="divider"></div>
-          <div class="value yellow">Conclusion: ${c.summary?.status || 'WAIT'}</div>
-        </div>
-      `;
-    }
-
-    function emoji(v){
-      const s = String(v || "").toLowerCase();
-      if(s.includes("rising") || s.includes("positive") || s.includes("bullish") || s.includes("improving")) return "🟢";
-      if(s.includes("breakout")) return "🔥";
-      if(s.includes("wait") || s.includes("mixed")) return "🟡";
-      return "🔴";
-    }
-
-    // ================= WATCHLIST =================
-    function renderWatchlist(){
-      const el = document.getElementById("watchlist-body");
-
-      let items = [...state.watchlist];
-
-      if(state.filter !== "all"){
-        items = items.filter(x => {
-          if(state.filter === "EARLY") return !!x.early;
-          return String(x.status).toUpperCase().includes(state.filter);
-        });
-      }
-
-      document.getElementById("watchlist-count").innerText = `${state.watchlist.length} coins`;
-
-      if(!items.length){
-        el.innerHTML = `<div class="empty">No coins in this filter</div>`;
-        return;
-      }
-
-      el.innerHTML = items.map(c => `
-        <div class="coin-row" onclick='openCoin(${JSON.stringify(c).replace(/'/g, "&apos;")})'>
-          <div class="coin-main">
-            <div class="coin-name">${c.name} <span class="muted">${c.symbol}</span></div>
-            <div class="coin-meta">${c.chain} · Updated ${relativeTime(c.updatedAt)}</div>
-            <div class="subline" style="margin-top:6px;">
-              ${statusPill(c.status)}
-            </div>
-          </div>
-          <div class="coin-right">
-            <div class="label">${fmtUSD(c.price)}</div>
-            <div class="${Number(c.change24h) >= 0 ? 'green' : 'red'} subline">${fmtPct(c.change24h)}</div>
-            <div class="subline">Score ${c.score || 0}/5</div>
-          </div>
-        </div>
-      `).join("");
-    }
-
-    function relativeTime(dateStr){
-      if(!dateStr) return "—";
-      const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
-      if(diff < 60) return diff + "s ago";
-      if(diff < 3600) return Math.floor(diff/60) + "m ago";
-      if(diff < 86400) return Math.floor(diff/3600) + "h ago";
-      return Math.floor(diff/86400) + "d ago";
-    }
-
-    // INIT
-    loadOverview();
-    renderWatchlist();
-
-    // auto refresh simple blocks
-    setInterval(loadOverview, 60000);
-
-    // allow Enter on searches
-    document.getElementById("search-input").addEventListener("keydown", e => {
-      if(e.key === "Enter") searchCoins();
-    });
-
-    document.getElementById("global-search").addEventListener("keydown", e => {
-      if(e.key === "Enter") quickSearch();
-    });
-  </script>
-</body>
+    <script src="./src/main.js" type="module"></script>
+  </body>
 </html>
