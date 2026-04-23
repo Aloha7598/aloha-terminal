@@ -5,11 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Aloha Terminal</title>
 
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-
 <style>
-body { background:#0a0a0f; color:white; font-family:sans-serif; }
-.nav { display:flex; gap:10px; padding:10px; }
+body { background:#0a0a0f; color:white; font-family:sans-serif; margin:0; }
+
+.nav { display:flex; gap:15px; padding:10px; border-bottom:1px solid #222; }
 .nav-item { cursor:pointer; opacity:.5; }
 .nav-item.active { opacity:1; color:#00e5a0; }
 
@@ -17,6 +16,7 @@ body { background:#0a0a0f; color:white; font-family:sans-serif; }
 .section.active { display:block; }
 
 .card { background:#111; padding:10px; margin-bottom:10px; border-radius:8px; }
+
 .green { color:#00e5a0 }
 .red { color:#ff4466 }
 </style>
@@ -24,16 +24,19 @@ body { background:#0a0a0f; color:white; font-family:sans-serif; }
 
 <body>
 
+<h2 style="padding:10px">ALOHA / TERMINAL</h2>
+
 <div class="nav">
-  <div class="nav-item active" onclick="switchTab('overview')">Overview</div>
-  <div class="nav-item" onclick="switchTab('smart')">Smart Money</div>
+  <div class="nav-item active" onclick="switchTab('overview', this)">Overview</div>
+  <div class="nav-item" onclick="switchTab('smart', this)">Smart Money</div>
 </div>
 
+<!-- OVERVIEW -->
 <div class="section active" id="sec-overview">
   <div class="card">
     <h3>Prices</h3>
-    <div id="btc">BTC: —</div>
-    <div id="eth">ETH: —</div>
+    <div id="btc">Loading...</div>
+    <div id="eth">Loading...</div>
   </div>
 
   <div class="card">
@@ -42,6 +45,7 @@ body { background:#0a0a0f; color:white; font-family:sans-serif; }
   </div>
 </div>
 
+<!-- SMART MONEY -->
 <div class="section" id="sec-smart">
 
   <div class="card">
@@ -63,81 +67,89 @@ body { background:#0a0a0f; color:white; font-family:sans-serif; }
 </div>
 
 <script>
-const API_BASE = "https://aloha-terminal.onrender.com";
+const API = window.location.origin;
 
-function switchTab(tab) {
-  // remove active states
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+// =======================
+// TAB SWITCH (FIXED)
+// =======================
+function switchTab(tab, el) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
 
-  // activate clicked tab
-  document.querySelector(`[onclick="switchTab('${tab}')"]`).classList.add('active');
+  el.classList.add('active');
   document.getElementById('sec-' + tab).classList.add('active');
 
-  // 🔥 LOAD DATA PER TAB
-  if (tab === 'etf') fetchEtfs();
-  if (tab === 'onchain') fetchOnChainAll();
-  if (tab === 'risk') fetchRiskAll();
-  if (tab === 'sentiment') fetchSentiment();
-  if (tab === 'news') loadNews();
-  if (tab === 'smart') fetchSmartMoney(); // future
-}  
-  function switchTab(tab) {
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
-
-  document.querySelector(`[onclick="switchTab('${tab}')"]`).classList.add('active');
-  document.getElementById('sec-' + tab).classList.add('active');
-
-  if (tab === 'smart') fetchSmartMoney();
+  if (tab === 'smart') loadSmartMoney();
 }
 
-async function fetchPrices() {
+// =======================
+// PRICES
+// =======================
+async function loadPrices() {
   try {
-    const res = await fetch(API_BASE + '/api/prices');
-    const data = await res.json();
+    const r = await fetch(API + '/api/prices');
+    const d = await r.json();
 
     document.getElementById('btc').textContent =
-      "BTC: $" + data['BTC-USD'].price;
+      "BTC: $" + (d.BTC || 0);
 
     document.getElementById('eth').textContent =
-      "ETH: $" + data['ETH-USD'].price;
+      "ETH: $" + (d.ETH || 0);
 
   } catch(e) {
     console.log(e);
   }
 }
 
-async function fetchSmartMoney() {
+// =======================
+// AI SIGNAL (simple)
+// =======================
+async function loadSignal() {
+  document.getElementById('signal').innerHTML =
+    `<span class="green">NEUTRAL</span><br>
+     BTC stable, no clear edge.`;
+}
+
+// =======================
+// SMART MONEY
+// =======================
+async function loadSmartMoney() {
   try {
-    const res = await fetch(API_BASE + '/api/smartmoney');
-    const d = await res.json();
+    const r = await fetch(API + '/api/smartmoney');
+    const d = await r.json();
 
     // whales
     document.getElementById('smart-whales').innerHTML =
       (d.whales || []).map(w =>
-        `<div class="${w.type==='buy'?'green':'red'}">${w.label} $${w.amount}</div>`
-      ).join('');
+        `<div class="${w.type==='buy'?'green':'red'}">
+          ${w.label} $${w.amount}
+        </div>`
+      ).join('') || "No data";
 
     // flow
-    document.getElementById('cex-flow').textContent = '$' + d.cex_flow;
+    document.getElementById('cex-flow').textContent =
+      "$" + (d.cex_flow || 0);
 
     document.getElementById('cex-signal').textContent =
-      d.cex_flow < 0 ? 'ACCUMULATION' : 'DISTRIBUTION';
+      d.cex_flow < 0 ? "ACCUMULATION" : "DISTRIBUTION";
 
-    // chip
+    // chip holders
     document.getElementById('chip-holders').innerHTML =
       (d.chip || []).map(h =>
         `<div>${h.wallet} (${h.pnl}%)</div>`
-      ).join('');
+      ).join('') || "No data";
 
   } catch(e) {
     console.log(e);
   }
 }
 
+// =======================
+// INIT
+// =======================
 function init() {
-  fetchPrices();
+  loadPrices();
+  loadSignal();
 }
 
 init();
