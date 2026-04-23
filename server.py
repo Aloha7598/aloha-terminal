@@ -35,7 +35,8 @@ def after_request(response):
 
 @app.route("/")
 def index():
-    return send_from_directory(".", "index.html")
+    from flask import redirect
+    return redirect("/dashboard")
 
 @app.route("/dashboard")
 def dashboard():
