@@ -858,22 +858,30 @@ async function fetchOnChainAll() {
 async function fetchRiskAll() {
   await Promise.allSettled([fetchFearGreed(), fetchWhales(), fetchMacro()]);
 }
+  async function loadNews() {
   const container = document.getElementById('news-list');
   container.innerHTML = '<div class="error-msg">Loading...</div>';
+
   try {
     const res = await fetch(API_BASE + '/api/news');
     const data = await res.json();
-    if(!data.articles||!data.articles.length) {
-      container.innerHTML='<div class="error-msg">No news available</div>'; return;
+
+    if (!data.articles || !data.articles.length) {
+      container.innerHTML = '<div class="error-msg">No news available</div>';
+      return;
     }
-    container.innerHTML = data.articles.map(a=>`
+
+    container.innerHTML = data.articles.map(a => `
       <div class="news-item">
-        <div class="news-title"><a href="${a.url}" style="color:var(--text);text-decoration:none">${a.title}</a></div>
-        <div class="news-meta">${a.source} · ${a.published||''}</div>
+        <div class="news-title">
+          <a href="${a.url}" style="color:var(--text);text-decoration:none">${a.title}</a>
+        </div>
+        <div class="news-meta">${a.source} · ${a.published || ''}</div>
       </div>
     `).join('');
-  } catch(e) {
-    container.innerHTML='<div class="error-msg">News unavailable</div>';
+
+  } catch (e) {
+    container.innerHTML = '<div class="error-msg">News unavailable</div>';
   }
 }
 
