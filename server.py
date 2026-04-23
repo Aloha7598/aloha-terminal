@@ -277,6 +277,13 @@ header{display:flex;align-items:center;justify-content:space-between;padding:12p
       </div>
     </div>
     <div class="card">
+      <div class="card-header"><div class="card-title">&#x1F525; Social Trending — LunarCrush</div>
+      <div class="badge" style="background:rgba(68,136,255,.12);color:var(--blue)">LIVE</div></div>
+      <div id="trending-list">
+        <div style="color:var(--text3);font-size:11px;text-align:center;padding:8px">Loading trending...</div>
+      </div>
+    </div>
+    <div class="card">
       <div class="card-header"><div class="card-title">Social Sentiment</div>
       <div class="badge" style="background:rgba(68,136,255,.12);color:var(--blue)">LUNARCRUSH</div></div>
       <div class="dr"><span class="dk">BTC Galaxy Score</span><span class="dv" id="btc-galaxy">—</span></div>
@@ -317,6 +324,52 @@ function tab(name, el) {
   el.classList.add('active');
   document.getElementById('sec-'+name).classList.add('active');
   if(name==='news') loadNews();
+}
+
+async function loadTrending() {
+  var c = document.getElementById('trending-list');
+  if (!c) return;
+  try {
+    var r = await fetch('https://aloha-terminal.onrender.com/api/trending');
+    var d = await r.json();
+    if (d.coins && d.coins.length) {
+      c.innerHTML = d.coins.map(function(coin) {
+        var chgColor = coin.change >= 0 ? '#00e5a0' : '#ff4466';
+        var chgStr = (coin.change >= 0 ? '+' : '') + coin.change.toFixed(2) + '%';
+        var galaxyColor = coin.galaxy >= 70 ? '#00e5a0' : coin.galaxy >= 50 ? '#ffaa00' : '#ff4466';
+        return '<div class="dr" style="align-items:center">' +
+          '<span style="color:var(--text3);font-family:\'IBM Plex Mono\',monospace;font-size:10px;width:18px">' + coin.rank + '</span>' +
+          '<span style="flex:1;margin-left:8px">' +
+            '<span style="font-weight:500">' + coin.symbol + '</span>' +
+            '<span style="color:var(--text3);font-size:10px;margin-left:6px">' + coin.name + '</span>' +
+          '</span>' +
+          '<span style="font-family:\'IBM Plex Mono\',monospace;font-size:10px;color:' + galaxyColor + ';margin-right:12px">★' + coin.galaxy + '</span>' +
+          '<span style="font-family:\'IBM Plex Mono\',monospace;font-size:12px;font-weight:500;color:' + chgColor + '">' + chgStr + '</span>' +
+        '</div>';
+      }).join('');
+    } else if (d.error) {
+      c.innerHTML = '<div style="color:var(--text3);font-size:11px;text-align:center;padding:8px">Add LUNARCRUSH_KEY in Render env to enable</div>';
+    }
+  } catch(e) {
+    c.innerHTML = '<div style="color:var(--text3);font-size:11px;text-align:center;padding:8px">Trending unavailable</div>';
+  }
+}
+
+async function loadSentiment() {
+  try {
+    var r = await fetch('https://aloha-terminal.onrender.com/api/sentiment');
+    var d = await r.json();
+    if (d.btc) {
+      var bg = document.getElementById('btc-galaxy');
+      var eg = document.getElementById('eth-galaxy');
+      var ba = document.getElementById('btc-altrank');
+      var bs = document.getElementById('btc-social');
+      if (bg) { bg.textContent = (d.btc.galaxy_score || '—') + '/100'; bg.style.color = d.btc.galaxy_score >= 70 ? '#00e5a0' : '#ffaa00'; }
+      if (eg) { eg.textContent = (d.eth && d.eth.galaxy_score || '—') + '/100'; }
+      if (ba) ba.textContent = '#' + (d.btc.alt_rank || '—');
+      if (bs) bs.textContent = (d.btc.social_volume_24h || 0).toLocaleString();
+    }
+  } catch(e) {}
 }
 
 async function loadNews() {
@@ -608,8 +661,30 @@ def api_onchain():
 # ─────────────────────────────────────────────
 #  SENTIMENT — LunarCrush
 # ─────────────────────────────────────────────
-@app.route("/api/sentiment")
-def api_sentiment():
+@app.route("/api/trending")
+def api_trending():
+    if not LUNARCRUSH_KEY:
+        return jsonify({"error": "No LunarCrush key"})
+    try:
+        r = requests.get(
+            "https://lunarcrush.com/api4/public/coins/list/v2?sort=social_score&limit=15",
+            headers={"Authorization": f"Bearer {LUNARCRUSH_KEY}"},
+            timeout=10
+        )
+        data = r.json().get("data", [])
+        coins = []
+        for i, c in enumerate(data):
+            coins.append({
+                "rank":       i + 1,
+                "name":       c.get("name", ""),
+                "symbol":     c.get("symbol", "").upper(),
+                "change":     round(c.get("percent_change_24h", 0) or 0, 2),
+                "galaxy":     c.get("galaxy_score", 0),
+                "social_vol": c.get("social_volume_24h", 0),
+            })
+        return jsonify({"coins": coins})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
     if not LUNARCRUSH_KEY:
         return jsonify({"error": "No LunarCrush key"})
     result = {}
