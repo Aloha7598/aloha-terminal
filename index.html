@@ -82,13 +82,14 @@ function switchTab(tab) {
   if (tab === 'news') loadNews();
   if (tab === 'smart') fetchSmartMoney(); // future
 }  
+  function switchTab(tab) {
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
 
   document.querySelector(`[onclick="switchTab('${tab}')"]`).classList.add('active');
   document.getElementById('sec-' + tab).classList.add('active');
 
-  if(tab === 'smart') fetchSmartMoney();
+  if (tab === 'smart') fetchSmartMoney();
 }
 
 async function fetchPrices() {
