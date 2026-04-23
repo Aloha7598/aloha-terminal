@@ -40,34 +40,79 @@ def prices():
 
 
 # =========================
-# API: SIGNAL
+# API: SIGNAL ENGINE
 # =========================
 @app.route('/api/signal')
 def signal():
+
+    btc_change = -0.9   # simulate (replace later)
+    fear_greed = 46
+
+    score = 0
+    details = []
+
+    if btc_change < -1:
+        score -= 1
+        details.append("BTC weak")
+
+    if fear_greed < 40:
+        score -= 1
+        details.append("Fear market")
+
+    if score <= -1:
+        status = "RISK"
+    elif score >= 1:
+        status = "BULLISH"
+    else:
+        status = "NEUTRAL"
+
     return jsonify({
-        "status": "NEUTRAL",
-        "message": "BTC stable, no clear edge."
+        "status": status,
+        "details": details,
+        "score": score
     })
 
 
 # =========================
-# API: SMART MONEY
+# API: SMART MONEY ENGINE
 # =========================
 @app.route('/api/smartmoney')
 def smartmoney():
+
+    whales = [
+        {"label": "Binance Cold Wallet", "amount": 520000, "type": "buy"},
+        {"label": "Smart Wallet 0xA1", "amount": 180000, "type": "buy"},
+        {"label": "Whale Exit 0xF9", "amount": 90000, "type": "sell"}
+    ]
+
+    cex_flow = -1250000  # negative = accumulation
+
+    chip = [
+        {"wallet": "0x8f3...a21", "pnl": 245},
+        {"wallet": "0x4ab...992", "pnl": 118},
+        {"wallet": "0x91c...77d", "pnl": 76}
+    ]
+
+    # 🧠 INTERPRETATION
+    if cex_flow < 0:
+        signal = "ACCUMULATION"
+    else:
+        signal = "DISTRIBUTION"
+
     return jsonify({
-        "whales": [
-            {"label": "Binance Cold Wallet", "amount": 520000, "type": "buy"},
-            {"label": "Smart Wallet 0xA1", "amount": 180000, "type": "buy"},
-            {"label": "Whale Exit 0xF9", "amount": 90000, "type": "sell"}
-        ],
-        "cex_flow": -1250000,
-        "chip": [
-            {"wallet": "0x8f3...a21", "pnl": 245},
-            {"wallet": "0x4ab...992", "pnl": 118},
-            {"wallet": "0x91c...77d", "pnl": 76}
-        ]
+        "whales": whales,
+        "cex_flow": cex_flow,
+        "cex_signal": signal,
+        "chip": chip
     })
+
+
+# =========================
+# HEALTH CHECK
+# =========================
+@app.route('/ping')
+def ping():
+    return jsonify({"status": "alive"})
 
 
 # =========================
