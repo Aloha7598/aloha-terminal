@@ -254,6 +254,8 @@
   <div class="nav-item" onclick="switchTab('risk')">Risk</div>
   <div class="nav-item" onclick="switchTab('sentiment')">Sentiment</div>
   <div class="nav-item" onclick="switchTab('news')">News</div>
+  <div class="nav-item" onclick="switchTab('smart')">Smart Money</div>
+  if (tab === 'smart') fetchSmartMoney();
 </nav>
 
 <div class="content">
@@ -552,6 +554,7 @@ function switchTab(tab) {
   if (tab === 'risk') fetchRiskAll();
   if (tab === 'sentiment') fetchSentiment();
   if (tab === 'news') loadNews();
+  if (tab === 'smart') fetchSmartMoney();
 }
 
 function switchEtfTab(coin, el) {
@@ -916,5 +919,80 @@ async function init() {
 
 init();
 </script>
+  async function fetchSmartMoney() {
+  try {
+    const res = await fetch(API_BASE + '/api/smartmoney');
+    const d = await res.json();
+
+    // 🐋 whales
+    const whales = d.whales || [];
+    document.getElementById('smart-whales').innerHTML = whales.map(w => {
+      const color = w.type === 'buy' ? 'green' : 'red';
+      return `
+        <div class="data-row">
+          <span class="data-key">${w.label}</span>
+          <span class="data-val ${color}">$${w.amount}</span>
+        </div>`;
+    }).join('');
+
+    // 🏦 CEX flow
+    const flow = d.cex_flow;
+    document.getElementById('cex-flow').textContent = '$' + flow;
+
+    const signal = flow < 0 ? 'ACCUMULATION' : 'DISTRIBUTION';
+    document.getElementById('cex-signal').textContent = signal;
+    document.getElementById('cex-signal').className =
+      'data-val ' + (flow < 0 ? 'green' : 'red');
+
+    // 🧠 CHIP holders
+    const holders = d.chip || [];
+    document.getElementById('chip-holders').innerHTML = holders.map(h => `
+      <div class="data-row">
+        <span class="data-key">${h.wallet}</span>
+        <span class="data-val ${h.pnl >= 0 ? 'green':'red'}">${h.pnl}%</span>
+      </div>
+    `).join('');
+
+  } catch (e) {
+    console.error('Smart money error', e);
+  }
+}
 </body>
 </html>
+<!-- SMART MONEY -->
+<div class="section" id="sec-smart">
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Whale Activity</div>
+      <div class="card-badge badge-blue">LIVE</div>
+    </div>
+    <div id="smart-whales">
+      <div class="error-msg">Loading...</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">CEX Flow Signal</div>
+    </div>
+    <div class="data-row">
+      <span class="data-key">Net Flow</span>
+      <span class="data-val" id="cex-flow">—</span>
+    </div>
+    <div class="data-row">
+      <span class="data-key">Signal</span>
+      <span class="data-val" id="cex-signal">—</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">CHIP Smart Holders</div>
+    </div>
+    <div id="chip-holders">
+      <div class="error-msg">Tracking whales...</div>
+    </div>
+  </div>
+
+</div>
