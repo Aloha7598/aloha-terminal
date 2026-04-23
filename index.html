@@ -66,6 +66,22 @@ body { background:#0a0a0f; color:white; font-family:sans-serif; }
 const API_BASE = "https://aloha-terminal.onrender.com";
 
 function switchTab(tab) {
+  // remove active states
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+
+  // activate clicked tab
+  document.querySelector(`[onclick="switchTab('${tab}')"]`).classList.add('active');
+  document.getElementById('sec-' + tab).classList.add('active');
+
+  // 🔥 LOAD DATA PER TAB
+  if (tab === 'etf') fetchEtfs();
+  if (tab === 'onchain') fetchOnChainAll();
+  if (tab === 'risk') fetchRiskAll();
+  if (tab === 'sentiment') fetchSentiment();
+  if (tab === 'news') loadNews();
+  if (tab === 'smart') fetchSmartMoney(); // future
+}  
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
 
